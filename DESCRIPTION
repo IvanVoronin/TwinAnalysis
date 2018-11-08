@@ -1,12 +1,12 @@
-Package: NewTwinAnalysis
+Package: TwinAnalysis
 Type: Package
-Title: What the Package Does (Title Case)
+Title: This is a package to simplify structural equation modeling - and particularly, twin analysis - in R.
 Version: 0.1.0
-Author: Who wrote it
-Maintainer: The package maintainer <yourself@somewhere.net>
-Description: More about what it does (maybe more than one line)
-    Use four spaces when indenting paragraphs within the Description.
-License: What license is it under?
+Author: Ivan Voronin
+Maintainer: Ivan Voronin <ivan.a.voronin@gmail.com>
+Description: The package is based on the functionality of OpenMx package and aims to provide a shortcut between
+model definition and publishing the results.
+License: ???
 Encoding: UTF-8
 LazyData: true
 Imports:
