@@ -93,5 +93,6 @@ cross_lag_ace <- function(data, zyg, definition = list()) {
                                name = 'Path_estimates')
                      )
   output_tables(twmodel) <- c('Variance_components', 'Path_estimates')
+  twmodel <- def_ci(twmodel, output_tables(twmodel))
   return(twmodel)
 }
