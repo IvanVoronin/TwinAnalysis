@@ -352,8 +352,8 @@ def_stand_params <- function(model) {
   )
 
   params <- omxLocateParameters(model)
-  params <- params[params$matrix %in% c('A','S'), ]
-
+  params <- params[params$matrix == 'A' |
+                     params$matrix == 'S' & params$row >= params$col, ]
   params_loc <- sprintf('%s[%d, %d]', params$matrix, params$row, params$col)
   st_params_loc <- sprintf('%sst[%d, %d]', params$matrix, params$row, params$col)
 

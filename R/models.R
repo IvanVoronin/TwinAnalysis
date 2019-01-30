@@ -12,7 +12,8 @@ cross_lag <- function(data, definition)
       from = vars,
       arrows = 2,
       connect = 'single',
-      values = 1
+      values = 1,
+      lbound = 0
     ),
 
     # Means.
