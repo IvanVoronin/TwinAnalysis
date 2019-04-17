@@ -46,11 +46,13 @@ def_output_tables <- function(model, output_tables = character(0)) {
 
 #' @rdname output_tables
 #' @export
-get_output_tables <- function(model) {
+get_output_tables <- function(model, CIs = TRUE) {
   output_tables <- output_tables(model)
   pars <- lapply(output_tables, mxEvalByName, model)
   names(pars) <- output_tables
-  cis <- get_ci(model)
+  cis <- if (CIs)
+    get_ci(model)
+  else NULL
 
   outp <- list()
   for (i in output_tables) {
