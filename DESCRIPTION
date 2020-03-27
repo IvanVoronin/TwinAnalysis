@@ -13,3 +13,7 @@ Imports:
   mlth.data.frame,
   OpenMx
 RoxygenNote: 6.1.1
+Suggests: 
+    knitr,
+    rmarkdown
+VignetteBuilder: knitr

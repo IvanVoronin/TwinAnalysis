@@ -247,10 +247,26 @@ fit_stats <- function(model, nested_models = NULL) {
 def_nested_models <- function(model, ..., run = FALSE) {
   # TODO: Fix the bug when the nested models names lacking
   dots <- list(...)
-  if (run)
-    lapply(dots, function(x) mxRun(mxModel(model, x)))
-  else
-    lapply(dots, function(x) mxModel(model, x))
+  out_list <- list()
+  for (i in names(dots)) {
+    if (run)
+      out_list[[i]] <-
+        mxRun(
+          mxRename(
+            mxModel(model, dots[[i]]),
+            i))
+    else
+      out_list[[i]] <-
+        mxRename(
+          mxModel(model, dots[[i]]),
+          i)
+  }
+
+  out_list
+  # if (run)
+  #   lapply(dots, function(x) mxRun(mxRename(mxModel(model, x)), )
+  # else
+  #   lapply(dots, function(x) mxModel(model, x))
 }
 
 #' @rdname ci

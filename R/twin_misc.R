@@ -21,6 +21,7 @@ twin_ref_models <- function(model, run = FALSE, ...) {
   selvars <- model$MZ$expectation$dims
   nv <- length(selvars) / 2
 
+  # FIXME: Doesn't work when the model hasn't been   fit
   startmz <- 0.9 * attr(model$MZ$fitfunction$result,'expCov')
   startmz[upper.tri(startmz)] <- t(startmz)[upper.tri(startmz)]
   startdz <- 0.9 * attr(model$DZ$fitfunction$result,'expCov')

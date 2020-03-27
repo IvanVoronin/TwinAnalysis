@@ -1,0 +1,249 @@
+---
+title: "Cross-lag ACE model"
+author: "Ivan Voronin"
+date: "`r Sys.Date()`"
+output:
+  prettydoc::html_pretty:
+    theme: cayman
+    highlight: github
+vignette: >
+  %\VignetteIndexEntry{Cross-lag ACE model}
+  %\VignetteEncoding{UTF-8}
+  %\VignetteEngine{knitr::rmarkdown}
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+```{r include=FALSE, eval=FALSE}
+# Converting pdf graphics to svg
+pdfs <- list.files(pattern = '*.pdf$', recursive = TRUE)
+svgs <- gsub('pdf$', 'svg', pdfs)
+
+Map(function(i, o) {
+  system(paste('pdf2svg', i, o))
+}, pdfs, svgs)
+```
+
+This is a vignette to illustrate an application of the cross-lag ACE model.
+
+```{r, eval=FALSE, echo=FALSE}
+# Here I simulate the cross-lag twin data
+# The covariance matrices are simulated upon the results 
+# from Cholesky ACE from the paper Malanchini et al. (2017)
+vars <- c('Mot10', 'Ach10', 'Ach12', 'Mot12')
+
+a <- matrix(c(
+    0.57, 0   , 0   , 0   ,
+    0.37, 0.51, 0   , 0   ,
+    0.43, 0.30, 0.26, 0   ,
+    0.50, 0.27, 0.39, 0.00),
+  ncol = 4, nrow = 4, byrow = TRUE,
+  dimnames = list(vars, vars))
+
+c <- matrix(c(
+    0.02, 0   , 0   , 0   ,
+    0.00, 0.06, 0   , 0   ,
+    0.00, 0.01, 0.00, 0   ,
+    0.00, 0.00, 0.00, 0.00),
+  ncol = 4, nrow = 4, byrow = TRUE,
+  dimnames = list(vars, vars))
+
+e <- matrix(c(
+    0.82, 0   , 0   , 0   ,
+    0.07, 0.58, 0   , 0   ,
+    0.14, 0.09, 0.77, 0   ,
+    0.22, 0.03, 0.32, 0.60),
+  ncol = 4, nrow = 4, byrow = TRUE,
+  dimnames = list(vars, vars))
+
+A <- a %*% t(a)
+C <- c %*% t(c)
+E <- e %*% t(e)
+
+V <- A + C + E
+V[c('Mot10', 'Ach10', 'Mot12', 'Ach12'), c('Mot10', 'Ach10', 'Mot12', 'Ach12')]
+
+cov_mz <- rbind(cbind(A + C + E, A + C),
+                cbind(A + C, A + C + E))
+
+cov_dz <- rbind(cbind(A + C + E, 0.5 %x% A + C),
+                cbind(0.5 %x% A + C, A + C + E))
+
+mz_data <- MASS::mvrnorm(2502, 
+                         mu = rep(0, 8),
+                         Sigma = cov_mz)
+colnames(mz_data) <- paste0(vars, rep(1:2, each = length(vars)))
+
+dz_data <- MASS::mvrnorm(4425, 
+                         mu = rep(0, 8),
+                         Sigma = cov_dz)
+colnames(dz_data) <- paste0(vars, rep(1:2, each = length(vars)))
+
+data <- rbind(cbind(zyg = 'MZ', as.data.frame(mz_data)),
+              cbind(zyg = 'DZ', as.data.frame(dz_data)))
+
+model <- cross_lag_ace(data, 'zyg',
+                       list(c('Ach10', 'Mot10'), c('Ach12', 'Mot12')))
+
+model <- mxTryHard(model)
+```
+
+Here is a full cross-lag ACE model with four variables. Two traits `X` and `Y` are measured twice (`X1`, `Y1`, `X2`, `Y2`). Only one twin is shown on the path diagram.
+
+![](tex/genetic_cross_lag/genetic_cross_lag1.svg){width=80%}
+
+The model includes three sets of latent variables that correspond to the structure of genetic, shared environmental and non-shared environmental variability. Each set mirrors the cross-laged structure of the data. Here are the parameters that represent genetic structure of the traits:
+
+![](tex/genetic_cross_lag/genetic_cross_lag2.svg){width=80%}
+
+The model allows correlations within each assessment ($r_1$, $r_2$) and regression paths from variables in one assessment to the variables in the following one ($k_{11}$, ... , $k_{22}$). The total variability of all latent variables is constrained to 1. $h_{X1}^2$, ... , $h_{Y2}^2$ represent the amount of genetic variability of corresponding traits.
+
+I used the following model to simulate the data:
+
+![](tex/genetic_cross_lag/genetic_cross_lag3.svg){width=80%}
+
+![](tex/genetic_cross_lag/genetic_cross_lag4.svg){width=80%}
+
+![](tex/genetic_cross_lag/genetic_cross_lag5.svg){width=80%}
+
+The lengthy code that generates the data is below. It assumes that you have `OpenMx` installed. We will need it later anyway.
+In the resulting data table, `X11` is trait `X` at the first assessment in the first twin, `X12` is trait `X` at the first assessment in the second twin, etc. `zyg` stands for zygosity (`MZ` or `DZ`).
+
+
+```{r}
+vars <- c('X1', 'Y1', 'X2', 'Y2')
+
+I <- OpenMx::vec2diag(rep(1, 4))
+
+A_A <- matrix(
+  c(0.0, 0.0, 0.0, 0.0,
+    0.0, 0.0, 0.0, 0.0,
+    0.6, 0.3, 0.0, 0.0,
+    0.4, 0.5, 0.0, 0.0
+  ), ncol = 4, byrow = TRUE,
+  dimnames = list(vars, vars))
+
+A_S <- matrix(
+  c(1.0, 0.8, 0.0,   0.0,
+    0.8, 1.0, 0.0,   0.0,
+    0.0, 0.0, 0.262, 0.1,
+    0.0, 0.0, 0.1,   0.270
+  ), ncol = 4, byrow = TRUE,
+  dimnames = list(vars, vars))
+
+A_V <- solve(I - A_A) %*% A_S %*% t(solve(I - A_A))
+
+
+C_A <- matrix(
+  c(0.0, 0.0, 0.0, 0.0,
+    0.0, 0.0, 0.0, 0.0,
+    0.7, 0.1, 0.0, 0.0,
+    0.2, 0.5, 0.0, 0.0
+  ), ncol = 4, byrow = TRUE,
+  dimnames = list(vars, vars))
+
+C_S <- matrix(
+  c(1.0, 0.3, 0.0,   0.0,
+    0.3, 1.0, 0.0,   0.0,
+    0.0, 0.0, 0.458, 0.1,
+    0.0, 0.0, 0.1,   0.650
+  ), ncol = 4, byrow = TRUE,
+  dimnames = list(vars, vars))
+
+C_V <- solve(I - C_A) %*% C_S %*% t(solve(I - C_A))
+
+
+E_A <- matrix(
+  c(0.0, 0.0, 0.0, 0.0,
+    0.0, 0.0, 0.0, 0.0,
+    0.2, 0.0, 0.0, 0.0,
+    0.0, 0.2, 0.0, 0.0
+  ), ncol = 4, byrow = TRUE,
+  dimnames = list(vars, vars))
+
+E_S <- matrix(
+  c(1.0, 0.1, 0.0,   0.0,
+    0.1, 1.0, 0.0,   0.0,
+    0.0, 0.0, 0.960, 0.0,
+    0.0, 0.0, 0.0,   0.960
+  ), ncol = 4, byrow = TRUE,
+  dimnames = list(vars, vars))
+
+E_V <- solve(I - E_A) %*% E_S %*% t(solve(I - E_A))
+
+vcomp <- matrix(
+  c(0.5, 0.4, 0.6, 0.4,
+    0.3, 0.2, 0.2, 0.2,
+    0.2, 0.4, 0.2, 0.4),
+  ncol = 3,
+  dimnames = list(vars, c('A', 'C', 'E'))
+)
+
+A <- (sqrt(vcomp[, 'A']) %*% t(sqrt(vcomp[, 'A']))) * A_V 
+C <- (sqrt(vcomp[, 'C']) %*% t(sqrt(vcomp[, 'C']))) * C_V
+E <- (sqrt(vcomp[, 'E']) %*% t(sqrt(vcomp[, 'E']))) * E_V
+
+cov_mz <- rbind(cbind(A + C + E, A + C),
+                cbind(A + C, A + C + E))
+cov_dz <- rbind(cbind(A + C + E, 0.5 %x% A + C),
+                cbind(0.5 %x% A + C, A + C + E))
+
+dimnames(cov_mz) <- dimnames(cov_dz) <- 
+  list(paste0(vars, rep(1:2, each = length(vars))), 
+       paste0(vars, rep(1:2, each = length(vars))))
+
+mz_data <- MASS::mvrnorm(1000, 
+                         mu = rep(0, 8),
+                         Sigma = cov_mz)
+
+dz_data <- MASS::mvrnorm(1000, 
+                         mu = rep(0, 8),
+                         Sigma = cov_dz)
+
+data <- rbind(cbind(zyg = 'MZ', as.data.frame(mz_data)),
+              cbind(zyg = 'DZ', as.data.frame(dz_data)))
+```
+
+Now we can apply the cross-lag ACE model to the data. The argument `defintion` is a list with the vectors with variable names from each one measurement occasion. Otherwise, the model works just like any other model from `TwinAnalysis` package, refer to another vignette. I present here a minimal example of the application of cross-lag ACE.
+
+```{r}
+library(OpenMx)
+library(TwinAnalysis)
+
+model <- cross_lag_ace(data, zyg = 'zyg',
+                       definition = list(c('X1', 'Y1'),
+                                         c('X2', 'Y2')))
+
+model <- mxRun(model)
+
+model <- def_ref_models(model)
+model <- run_ref_models(model)
+
+# To fit assumption constrained reference models:
+# ref_models(model) <- twin_ref_models(model, run = TRUE)
+
+# Fit statistics
+fit_stats(model)
+
+# Parameter tables
+get_output_tables(model)
+```
+
+
+__Variance components__: `Atot`, `Ctot` and `Etot` are the standardized estimates of genetic and environmental contributions. `Acom`, `Ccom` abd `Ecom` are genetic and environmental contributions accounted for by the factors from the previous measurement occasion. For the first measurement occasion, there is no previous one, so `Acom`, `Ccom` and `Ecom` for `X1` and `X2` are zeros. `Ares`, `Cres` and `Eres` are the factors that remained unaccounted for by the previous measurement occasion. Each `com` and `res` sum up to `tot` and `Atot`, `Ctot` and `Etot` sum up to 1, the total variability of the corresponding measure.
+
+__Path estimates__: Each column `A`, `C` and `E` stands for the corresponding part of the twin model. Each row represents a parameter from the cross-lag model. For example, the genetic stability of `X`, denoted as `X1 --> X2`, is `r sprintf('%0.3f', get_output_tables(model)$Path_estimates['X1 --> X2', 'A'])`. The genetic correlation between `X` and `Y` in the first measurement occasion, denoted as `X1 <-> Y1`, is `r sprintf('%0.3f', get_output_tables(model)$Path_estimates['X1 <-> Y1', 'A'])`. Mind, that the total variance of the latent variables is constrained to 1 and the variance parameters in the table (`X1 <-> X1`,  `Y1 <-> Y1` etc) are residual (novel) variability, not total. In the first measurement occasion, all variability is novel, this is why all `X1 <-> X1` and `Y1 <-> Y1` are 1. It is not so for `X2 <-> X2` and `Y2 <-> Y2` because some part of variance of `X2` and `Y2` is explained by `X1` and `Y1`.
