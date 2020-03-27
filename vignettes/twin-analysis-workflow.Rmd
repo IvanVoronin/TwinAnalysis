@@ -17,33 +17,31 @@ knitr::opts_chunk$set(
 ```
 
 
-# Introduction
-
 Hi!
 
 This vignette has a purpose to illustrate the functionality of `TwinAnalysis` package for statistical analysis of twin data. 
 
 What this package can do:
 
-1. Define the most used twin models in one line of code. All models include the output tables with parameters that we usually report.
+1. Apply univariate and multivariate (correlated factors) ACE and ADE models. The models include the output tables with parameters that we usually report.
 
-2. Define the cross-lag ACE model.
+2. Apply a cross-lag ACE model.
 
-3. Perform routine operations, such as computing descriptive statistics or twin correlations.
+3. Compute descriptive statistics and twin correlations.
 
 What this package cannot do:
 
 1. The models with categorical outcome variables currently are not supported.
 
-2. The package cannot choose the model or fix the model that does not fit the data.
+2. It cannot help to choose the model or fix the model that does not fit the data.
 
-3. The package cannot check distributions, remove outliers or reshape data tables. All this can be done by means of standard functionality of R.
+3. The package cannot check distributions, remove outliers or reshape data tables.
 
 This package entirely relies on functionality of `OpenMx`, a package for structural equation modeling. `OpenMx` is widely used for twin analysis.
 
-`TwinAnalysis` also depends on its companion `mlth.data.frame` package for output tables.
+`TwinAnalysis` also depends on its companion `mlth.data.frame` package for output tables (refer to the [package vignette](https://ivanvoronin.github.io/mlth.data.frame/)).
 
-This vignette assumes that the reader is familiar with principles of twin analysis and has an idea of `OpenMx`. Also, in this vignette I use [`%>%` pipe operator](https://www.datacamp.com/community/tutorials/pipe-r-tutorial) from `dplyr`. 
+It is assumed that the user is familiar with  `OpenMx` package and with the principles of twin analysis. Also, in this vignette I use [`%>%` pipe operator](https://www.datacamp.com/community/tutorials/pipe-r-tutorial) from `dplyr`. 
 
 # Loading packages and the data
 
@@ -54,7 +52,7 @@ library(OpenMx)
 library(TwinAnalysis)
 ```
 
-I will use the dataset of twin from `OpenMx`. This is an Australian twin data on height (`ht1/2`), weight (`wt1/2`) and BMI (`bmi1/2`). There are two cohorts of twins: younger (`zyg %in% 1:5`) and older (`zyg %in% 6:10`). Details in `?twinData`.
+For the purpose of illustration, I will use the twin dataset from `OpenMx`. This is an Australian twin data on height (`ht1/2`), weight (`wt1/2`) and BMI (`bmi1/2`). There are two cohorts of twins: younger (`zyg %in% 1:5`) and older (`zyg %in% 6:10`). Details in `?twinData`.
 
 ```{r load_data}
 data(twinData)
@@ -73,14 +71,14 @@ Pre-processing of the data may include many steps, such as:
   - transforming variables,
   - performing factor analysis,
 
-...and they all are not covered in this vignette.
+which are not covered in this vignette.
 
-There are two formats of the tables with twin data:
+Twin data can be stored in a data tables in two formats:
 
- - *wide* format where a row of the table stands for one twin pair,
- - *long* format where a row of the table is a single twin, the twins are matched by family ID. 
+ - *wide*: each row stands for one twin pair,
+ - *long*: each row stands for a single twin, the twins are matched by family ID. 
  
-Most functions from `TwinAnalysis` operate with the data in *wide* format. It is assumed that the  variables that differ between the twins in a twin pair are named as `X1` and `X2`. `X1` is trait `X` in the first twin and `X2` is trait `X` in the second twin. <em>Mind that there is no separator between variable name and the suffix `1/2`.</em>
+Most functions from `TwinAnalysis` operate with data in the *wide* format. It is assumed that the variables that differ between the twins (including phenotype variables) are named as `X1` and `X2`. `X1` is trait `X` in the first twin and `X2` is trait `X` in the second twin. <em>Mind that there is no separator between variable name and the suffix `1/2`.</em>
 
 Below is an example of reshaping wide table `twinData` to long table `longData` and back.
 
@@ -106,9 +104,9 @@ longData %>%
   head
 ```
 
-!!!
+Zygosity is a key variable for twin analysis as it labels MZ and DZ twins. A twin pair with no zygosity is excluded from the twin analysis. 
 
-Zygosity is a key variable for twin analysis as it labels MZ and DZ twins. A twin pair with no zygosity is almost useless. Here, `zygosity` labels both zygosity and sex. I use this information to create two separate variables for zygosity and sex.
+In the illustration data, the `zygosity` variable labels both zygosity and sex. I create the new zygosity and sex variables to use in further analysis.
 
 ```{r}
 twinData$zyg <- twinData$zygosity %>%
@@ -147,7 +145,9 @@ table(twinData$zygosity, twinData$sex1)
 table(twinData$zygosity, twinData$sex2)
 ```
 
-Finally, for this analysis I will select only the younger cohort.
+The zygosity __must__ be labeled as `'MZ'` or `'DZ'`. 
+
+Finally, for this analysis I will select only the younger cohort of participants.
 
 ```{r}
 # I usually don't omit the data from original datafames but make a copy
@@ -156,9 +156,9 @@ twinData2 <- twinData[twinData$cohort == 'younger', ]
 
 # Twin descriptive statistics
 
-Descriptive statistics are important for twin analysis because they help us to make sure that the data is OK and that the assumptions of twin model hold. If assumptions don't hold, the model will likely have poor fit meaning that we cannot be sure that it really captures the reality we study.
+Descriptive statistics are important for twin analysis because they help us to make sure that the data is OK and that the assumptions of twin model hold. If any assumption doesn't hold, the model can have poor fit meaning that it may not descrive well the reality that we study.
 
-One of the major (mathematical) assumptions is that the phenotype has the same scale in twins within twin pair and in zygosity groups. This means that means and variances shouldn't differ between twin 1 and twin 2 and across zygosity groups (MZ, DZ). Another mathematical assumptions concern twin similarity witnin the pair: $r_{MZ} > r_{DZ}$ and $2r_{DZ} < r_{MZ}$ (ACE model) or $r_{MZ}>2r_{DZ}$ and $4r_{DZ} > r_{MZ}$ (ADE model). We also may want to compare twin similarity in DZss and DZos pairs if we want to combine them into a single group.
+One mathematical assumption requires similar distributions of the phenotypic variables within twin pairs and between zygosity groups. Namely, the means and variances shouldn't differ between twin 1 and twin 2 and between MZ and DZ twins. Another mathematical assumption constrains the similarities witnin MZ and DZ pairs: $r_{MZ} > r_{DZ}$ and $2r_{DZ} < r_{MZ}$ (ACE model) or $r_{MZ}>2r_{DZ}$ and $4r_{DZ} > r_{MZ}$ (ADE model). We also may want to compare twin similarity in DZss and DZos pairs if we want to combine them into the single group.
 
 The `TwinAnalysis` package provides functionality to compute descriptive statistics (means, SDs, twin correlations).
 
@@ -172,7 +172,7 @@ get_fisher_z(twinData2, zyg = 'zyg',
              compare = c('DZss', 'DZos'))
 ```
 
-What catches the eye in this dataset is the difference between twin 1 and twin 2 in DZos group in height and weight. This is a natural result of twin 1 being female and twin 2 being male in this group. The twin similarity is lower in DZos pairs comparing to DZss pairs, also the result of sex differences in height and weight. Finally, $r_{MZ} > 2r_{DZ}$ for BMI which means that non-additive genetic effects may contribute to this phenotype and ADE model may be more appropriate.
+In this dataset there is noticeable difference between DZ twin 1 and DZ twin 2 in height and weight. This is a natural result of twin 1 being female and twin 2 being male in this group. The twin similarity is lower in DZos pairs comparing to DZss pairs, perhaps as the result of sex differences. Finally, $r_{MZ} > 2r_{DZ}$ for BMI which means that non-additive genetic effects may contribute to this phenotype and ADE model may be appropriate.
 
 For now, I ignore sex differences and exclude DZos pairs from the analysis by making a new zygosity variable.
 
@@ -193,7 +193,7 @@ get_univ_descriptives(twinData2, zyg = 'zyg2',
 
 # Univariate twin model
 
-Now we are ready for a univariate twin analysis which is the simplest form of twin model.
+A univariate ACE/ADE is the simplest form of twin model.
 
 Let's fit a univariate ACE model to BMI.
 
@@ -211,7 +211,7 @@ summary(bmi_univ)
 get_output_tables(bmi_univ)
 ```
 
-`univariate_ace()` returns an MxModel object which means that you can apply all functions that OpenMx provide to treat the models, such as `mxRun()`, `mxTryHard()`, `summary()` and others. You also can access, add and remove the elements (`MxAlgebra`, `MxMatrix`, `MxConstraint`, `MxCI`, etc) from the model.
+`univariate_ace()` returns an MxModel object which means that you can do everything you usually do with `OpenMx` models: run parameter fitting (`mxRun()`, `mxTryHard()`), get model summary (`summary()`), add/detele matrices and algebra from a model (`mxModel()`), add constraints (`mxConstraint()`) etc.
 
 ```{r}
 bmi_univ
@@ -220,13 +220,18 @@ bmi_univ$expCovMZ
 
 mxEval(expCovDZ, bmi_univ)
 
-# Note that expected variances for MZs and DZs are exactly same, it's not a coincidence
+# Note that expected variances in MZ and DZ twins are exactly same, 
+# this is why the assumptions on means and variances must be met in the data
 ```
 
 In addition to the standard model structure, such as the parameter matrices, the algebra for expected covariance matrix, the observed data, `unvariate_ace()` (as well as the other functions from `TwinAnalysis` that define models) adds the algebra that computes indeces that we actually will use as main results. In particular, `univariate_ace()` returns the single otput table with percents of variability accounted for by A, C and E. The output tables are usually stored inside the model as `MxAlgebra`.
 
-The function `get_output_tables()` retrieves the output tables from the model, append CIs (if available) and return them in ready-to-use form. The names of the tables that should be returned by `get_output_tables()` are stored as an `output_tables` option of the model. You can access and modify this option using `output_tables()`, `output_tables<-()` and `def_output_tables()`, although it's not what you do on the regular basis when using `TwinAnalysis`. 
+The function `get_output_tables()` returns the output tables from the model. These tables are recorded as an algebraic expression with model parametwes (`MxAlgebra` object) inside the model. For example, the `Variance_components` table reports the proportion of genetic and environmental contributions computed as genetic or environmental variability divided by the total variability of a trait.
 
+To ensure that the model fits the data well, we compare it against two reference models: saturated model and independence model. In a saturated model, there are as many parameters as there are data points (in terms of variances, covariances and means), therefore this models has the best fit. An independence model assumes that all variables are independent. Theoretically, a good model should describe the data as well as its saturated model. The function
+
+
+To ensure that the model fits the data well, we compare it against two reference models: [saturated model](https://stats.stackexchange.com/questions/283/what-is-a-saturated-model) and independence model. 
 Next, we have to assess model performance to find out whether it fits the data at all. `ref_models()` and `twin_ref_models()` each define the set of two reference models: Saturated and Independence. Saturated model assumes that all obseved variables may associate however they like meaning that it's the most relaxed and the less constrained model. Independence model assumes that all observed variables are independent. The fit of the model under assessment is somewhere in between Saturated model and Independence model. The difference between `ref_models()` and `twin_ref_models()` is that the later define the reference models that rely on the assumptions of twin model (equal means and variances).
 
 ```{r}
@@ -241,14 +246,14 @@ fit_stats(bmi_univ)
 fit_stats(bmi_univ2)
 ```
 
-At the end, the `fit_stats()` function return the table with various fit statistics. When compared to the reference models tailored specifically to conform the assumptions, our univariate model exhibits perfect fit and has the same amount of degrees of freedom as Saturated model. In both cases the model has good fit according to BIC, TLI and RMSEA. When compared using chi-squared test (`diffLL`, `diffdf` and `p`), the model significantly differ from the most relaxed Saturated model ($p < 0.05$). To find out if this happened because of assumption violation, we can compare two Saturated models.
+At the end, the `fit_stats()` function returns the table with various fit statistics. When compared to the reference models tailored specifically to conform the assumptions, our univariate model exhibits perfect fit and has the same amount of degrees of freedom as Saturated model. In both cases the model has good fit according to BIC, TLI and RMSEA. When compared using chi-squared test (`diffLL`, `diffdf` and `p`), the model significantly differ from the most relaxed Saturated model ($p < 0.05$). To find out if this happened because of assumption violation, we can compare two Saturated models.
 
 ```{r}
 mxCompare(ref_models(bmi_univ2)$Saturated,
           ref_models(bmi_univ)$Saturated)
 ```
 
-The statistically significant difference between two Saturated models shows that there is assumption violation. It does not necessary mean that we have to throw away the model because when the number of participants is high, even the small differences in means or variances can be statistically significant. I usually look at all descriptive statistics, fit statistics and decide whether I trust the model or not. In this case I would leave the model as it is because CFI, TLI and RMSEA are good.
+The statistically significant difference between two Saturated models shows that there an assumption is violated. It does not necessary mean that we have to throw away the model because when the number of participants is high, even the small differences in means or variances can be statistically significant. I usually look at all descriptive statistics, fit statistics and decide whether I trust the model or not. In this case I would leave the model as it is because CFI, TLI and RMSEA are good.
 
 I usually have to fit univariate twin model for multiple phenotypic variables. For this I use loop and store the models in a list.
 
