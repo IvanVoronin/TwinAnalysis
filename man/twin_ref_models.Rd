@@ -7,21 +7,18 @@
 twin_ref_models(model, run = FALSE, ...)
 }
 \arguments{
-\item{model}{a twin model, MxModel object}
+\item{model}{a twin model, \code{MxModel} object}
 
 \item{run}{whether the reference models are to be fit, default is TRUE}
 
-\item{...}{the parameters passed to mxRun}
+\item{...}{the parameters passed to \code{ref_models}}
 }
 \value{
 
 }
 \description{
-Define and fit saturated and indepencence models corresponding to a twin
-model. The twin model has to be fit as the function takes its estimates
+Define and fit saturated and indepencence models that follow the assumptions of twin model.
+The twin model has to be fit as the function takes its estimates
 of covariances and means to compute starting values. The twin model has
 to include MZ and DZ sub-models.
-}
-\examples{
-
 }

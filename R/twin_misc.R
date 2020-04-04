@@ -2,19 +2,17 @@
 #' @title Define twin reference models
 #'
 #' @description
-#' Define and fit saturated and indepencence models corresponding to a twin
-#' model. The twin model has to be fit as the function takes its estimates
+#' Define and fit saturated and indepencence models that follow the assumptions of twin model.
+#' The twin model has to be fit as the function takes its estimates
 #' of covariances and means to compute starting values. The twin model has
 #' to include MZ and DZ sub-models.
 #'
 #'
-#' @param model a twin model, MxModel object
+#' @param model a twin model, \code{MxModel} object
 #' @param run whether the reference models are to be fit, default is TRUE
-#' @param ... the parameters passed to mxRun
+#' @param ... the parameters passed to \code{ref_models}
 #'
 #' @return
-#'
-#' @examples
 #'
 #' @export
 twin_ref_models <- function(model, run = FALSE, ...) {
@@ -88,13 +86,12 @@ twin_ref_models <- function(model, run = FALSE, ...) {
                                mxFitFunctionML()),
                        mxFitFunctionMultigroup(c('MZ','DZ')))
 
-  if (run) {
-    return(list(Saturated = mxRun(sat_model, ...),
-                Independence = mxRun(ind_model, ...)))
-  } else {
-    return(list(Saturated = sat_model,
-                Independence = ind_model))
-  }
+  model <- ref_models(model,
+                      ref_models = list(
+                        Saturated = sat_model,
+                        Independence = ind_model
+                      ), run = run, ...)
+  return(model)
 }
 
 adjust_twin_data <- function(DV, IV, interaction = TRUE) {

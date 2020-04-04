@@ -1,8 +1,13 @@
 ---
-title: "Twin analysis vignette"
-output: rmarkdown::html_vignette
+title: "Twin Analysis vignette"
+author: "Ivan Voronin"
+date: "`r Sys.Date()`"
+output: 
+  prettydoc::html_pretty:
+    theme: cayman
+    highlight: github
 vignette: >
-  %\VignetteIndexEntry{twin-analysis-workflow}
+  %\VignetteIndexEntry{Twin Analysis vignette}
   %\VignetteEncoding{UTF-8}
   %\VignetteEngine{knitr::rmarkdown}
 editor_options: 
@@ -17,15 +22,15 @@ knitr::opts_chunk$set(
 ```
 
 
-Hi!
+Hi,
 
 This vignette has a purpose to illustrate the functionality of `TwinAnalysis` package for statistical analysis of twin data. 
 
 What this package can do:
 
-1. Apply univariate and multivariate (correlated factors) ACE and ADE models. The models include the output tables with parameters that we usually report.
+1. Run univariate and multivariate (correlated factors) ACE and ADE models. The models include the output tables with parameters that we usually report.
 
-2. Apply a cross-lag ACE model.
+2. Run [a cross-lag ACE/ADE model](crosslag_ace.html).
 
 3. Compute descriptive statistics and twin correlations.
 
@@ -37,15 +42,26 @@ What this package cannot do:
 
 3. The package cannot check distributions, remove outliers or reshape data tables.
 
-This package entirely relies on functionality of `OpenMx`, a package for structural equation modeling. `OpenMx` is widely used for twin analysis.
+This package entirely relies on functionality of [`OpenMx`](https://openmx.ssri.psu.edu/), a package for structural equation modeling. `OpenMx` is widely used for twin analysis.
 
 `TwinAnalysis` also depends on its companion `mlth.data.frame` package for output tables (refer to the [package vignette](https://ivanvoronin.github.io/mlth.data.frame/)).
 
 It is assumed that the user is familiar with  `OpenMx` package and with the principles of twin analysis. Also, in this vignette I use [`%>%` pipe operator](https://www.datacamp.com/community/tutorials/pipe-r-tutorial) from `dplyr`. 
 
-# Loading packages and the data
+# Loading the packages and the data
+
+```{r install, eval=FALSE}
+## Run the following code to install the packages
+
+# install.packages('devtools')
+library(devtools)
+install_github('ivanvoronin/mlth.data.frame')
+install_github('ivanvoronin/TwinAnalysis')
+```
 
 ```{r setup}
+## Load the packages
+
 library(dplyr)
 library(mlth.data.frame)
 library(OpenMx)
@@ -55,6 +71,8 @@ library(TwinAnalysis)
 For the purpose of illustration, I will use the twin dataset from `OpenMx`. This is an Australian twin data on height (`ht1/2`), weight (`wt1/2`) and BMI (`bmi1/2`). There are two cohorts of twins: younger (`zyg %in% 1:5`) and older (`zyg %in% 6:10`). Details in `?twinData`.
 
 ```{r load_data}
+## Load the data
+
 data(twinData)
 
 head(twinData)
@@ -150,7 +168,8 @@ The zygosity __must__ be labeled as `'MZ'` or `'DZ'`.
 Finally, for this analysis I will select only the younger cohort of participants.
 
 ```{r}
-# I usually don't omit the data from original datafames but make a copy
+## It is usually a good idea to make a copy of an original
+## data frame and make changes there
 twinData2 <- twinData[twinData$cohort == 'younger', ]
 ```
 
@@ -163,10 +182,10 @@ One mathematical assumption requires similar distributions of the phenotypic var
 The `TwinAnalysis` package provides functionality to compute descriptive statistics (means, SDs, twin correlations).
 
 ```{r}
-get_univ_descriptives(twinData2, zyg = 'zyg',       # Actually any factor variable
-                      vars = c('ht', 'wt', 'bmi')) # No suffix
+get_univ_descriptives(twinData2, zyg = 'zyg',      
+                      vars = c('ht', 'wt', 'bmi')) ## No suffix
 
-# We can also compare DZss and DZos correlations to check if they differ
+## We can also compare DZss and DZos correlations to check if they differ
 get_fisher_z(twinData2, zyg = 'zyg', 
              vars = c('ht', 'wt', 'bmi'), 
              compare = c('DZss', 'DZos'))
@@ -198,16 +217,16 @@ A univariate ACE/ADE is the simplest form of twin model.
 Let's fit a univariate ACE model to BMI.
 
 ```{r}
-# Define the model
+## Define the model
 bmi_univ <- univariate_ace(twinData2, zyg = 'zyg2', vars = 'bmi')
 
-# Fit MxModel
+## Fit MxModel
 bmi_univ <- mxRun(bmi_univ)
 
-# OpenMx summary
+## OpenMx summary
 summary(bmi_univ)
 
-# Output tables
+## Output tables
 get_output_tables(bmi_univ)
 ```
 
@@ -220,63 +239,59 @@ bmi_univ$expCovMZ
 
 mxEval(expCovDZ, bmi_univ)
 
-# Note that expected variances in MZ and DZ twins are exactly same, 
-# this is why the assumptions on means and variances must be met in the data
+## Note that expected variances in MZ and DZ twins are exactly same, 
+## this is why the assumptions on means and variances must be met in the data
 ```
 
 In addition to the standard model structure, such as the parameter matrices, the algebra for expected covariance matrix, the observed data, `unvariate_ace()` (as well as the other functions from `TwinAnalysis` that define models) adds the algebra that computes indeces that we actually will use as main results. In particular, `univariate_ace()` returns the single otput table with percents of variability accounted for by A, C and E. The output tables are usually stored inside the model as `MxAlgebra`.
 
 The function `get_output_tables()` returns the output tables from the model. These tables are recorded as an algebraic expression with model parametwes (`MxAlgebra` object) inside the model. For example, the `Variance_components` table reports the proportion of genetic and environmental contributions computed as genetic or environmental variability divided by the total variability of a trait.
 
-To ensure that the model fits the data well, we compare it against two reference models: saturated model and independence model. In a saturated model, there are as many parameters as there are data points (in terms of variances, covariances and means), therefore this models has the best fit. An independence model assumes that all variables are independent. Theoretically, a good model should describe the data as well as its saturated model. The function
+To ensure that the model fits the data well, we compare it against two reference models: saturated model and independence model. In a saturated model, there are as many parameters as there are data points (in terms of variances, covariances and means), therefore this models has the best fit of all. An independence model assumes that all variables are independent. Theoretically, a good model should describe the data as well as its saturated model.
 
+The function `ref_models()` runs and appends the reference models to a target model. By default, it uses `mxRefModels()` to define reference models and the user can provide custom reference models as well (see `?ref_models`).
 
-To ensure that the model fits the data well, we compare it against two reference models: [saturated model](https://stats.stackexchange.com/questions/283/what-is-a-saturated-model) and independence model. 
-Next, we have to assess model performance to find out whether it fits the data at all. `ref_models()` and `twin_ref_models()` each define the set of two reference models: Saturated and Independence. Saturated model assumes that all obseved variables may associate however they like meaning that it's the most relaxed and the less constrained model. Independence model assumes that all observed variables are independent. The fit of the model under assessment is somewhere in between Saturated model and Independence model. The difference between `ref_models()` and `twin_ref_models()` is that the later define the reference models that rely on the assumptions of twin model (equal means and variances).
+The function `twin_ref_model()` defines, runs and appends the reference models that follow the assumptions of the twin method (equal means, variances and co-variances across twins within pair and across zygosity groups).
+
+The function `fit_stats()` returns a table with fit statistics.
 
 ```{r}
-# bmi_univ and bmi_univ2 will be the same model with different reference models
+## bmi_univ and bmi_univ2 will be the same model with different reference models
 bmi_univ2 <- bmi_univ 
 
-ref_models(bmi_univ) <- twin_ref_models(bmi_univ, run = TRUE)
-ref_models(bmi_univ2) <- ref_models(bmi_univ2)
-bmi_univ2 <- run_ref_models(bmi_univ2)
+bmi_univ <- twin_ref_models(bmi_univ, run = TRUE)
+bmi_univ2 <- ref_models(bmi_univ2)
 
 fit_stats(bmi_univ)
 fit_stats(bmi_univ2)
 ```
 
-At the end, the `fit_stats()` function returns the table with various fit statistics. When compared to the reference models tailored specifically to conform the assumptions, our univariate model exhibits perfect fit and has the same amount of degrees of freedom as Saturated model. In both cases the model has good fit according to BIC, TLI and RMSEA. When compared using chi-squared test (`diffLL`, `diffdf` and `p`), the model significantly differ from the most relaxed Saturated model ($p < 0.05$). To find out if this happened because of assumption violation, we can compare two Saturated models.
+We can check that the assumptions hold by comparing two saturated models. In this case,
+the constrained saturated model explains the data significantly worse that the unconstrained saturated model meaning that some assumptions might be violated.
 
 ```{r}
-mxCompare(ref_models(bmi_univ2)$Saturated,
-          ref_models(bmi_univ)$Saturated)
+mxCompare(get_ref_models(bmi_univ2)$Saturated,
+          get_ref_models(bmi_univ)$Saturated)
 ```
 
-The statistically significant difference between two Saturated models shows that there an assumption is violated. It does not necessary mean that we have to throw away the model because when the number of participants is high, even the small differences in means or variances can be statistically significant. I usually look at all descriptive statistics, fit statistics and decide whether I trust the model or not. In this case I would leave the model as it is because CFI, TLI and RMSEA are good.
-
-I usually have to fit univariate twin model for multiple phenotypic variables. For this I use loop and store the models in a list.
+When there are several phenotypic variables to fit a univariate twin model upon, it is convenient to iterate over the variables.
 
 ```{r}
 univ_models <- list()
 
 for (v in c('ht', 'wt', 'bmi')) {
   model <- univariate_ace(twinData2, zyg = 'zyg2', vars = v)
-  model <- mxRun(model, intervals = TRUE)   # This time I evaluate CIs
-  ref_models(model) <- ref_models(model)
-  model <- run_ref_models(model)
-  
+  model <- mxRun(model, intervals = TRUE)   ## This time I evaluate CIs
+  model <- ref_models(model)
+
   univ_models[[v]] <- model
 }
-```
 
-Having the models in a list, I can iterate through the list to aggregate the output into the tables.
 
-```{r}
-# Estimates of genetic and environmental contributions
+## Estimates of genetic and environmental contributions
 univ_models %>%
   lapply(get_output_tables) %>%
-  lapply(`[[`, 'Variance_components') %>% # same as lapply(function(x) x[['Variance_components']])
+  lapply(`[[`, 'Variance_components') %>% ## same as lapply(function(x) x[['Variance_components']])
   do.call(rbind, .)
 
 univ_models %>%
@@ -286,78 +301,67 @@ univ_models %>%
 
 # Bivariate twin model
 
-We apply a bivariate twin model to find out whether shared genetic or environmental factors might cause the measured correlation between two traits. More generally, we can build a structure of unobservable genetic and environmental effects and, assuming that this structure explain observable relationships, find most probable values of unobserved parameters.
-
-If we want to apply a bivariate twin model to explore the relationship between height and weight, we will have 4-by-4 variance-covariance matrix. On this matrix we can distinguish within-twin and cross-twin variances-covariances.
+A bivariate twin model is applied when the research goal is to find out whether the measured correlation between two traits is accounted for by genetic or environmental variability shared by these two traits. This kind of analysis relies on within-twin and cross-twin within-trait and cross-trait covariances. For example, `ht1 <-> ht2` is a within-trait cross-twin correlation, `ht1 <-> wt1` is a cross-trait within-twin correlation, `ht1 <-> wt2` is a cross-trait cross-twin correlation. All these data will be used to find genetic and environmental contributions to height and veight and to estimate the overlap between the corresponding genetic and environmental variability.
 
 ```{r}
 twin_cors <- get_cross_trait_cors(twinData2, zyg = 'zyg2',
                                   vars = c('ht', 'wt'))
 twin_cors
 
-# Within-twin variances-covariances
-# Each table is diagonally symmetrical
+## Within-twin variances-covariances
+## Each table is diagonally symmetrical
 twin_cors %>% 
   lapply(`[`, c('ht1', 'wt1'), c('ht1', 'wt1'))
 twin_cors %>% 
   lapply(`[`, c('ht2', 'wt2'), c('ht2', 'wt2'))
 
-# Cross-twin within-trait covariances
-# Second set of tables is transposed first set of tables
+## Cross-twin within-trait covariances
+## Second set of tables is transposed first set of tables
 twin_cors %>% 
   lapply(`[`, c('ht1', 'wt1'), c('ht2', 'wt2'))
 twin_cors %>% 
   lapply(`[`, c('ht2', 'wt2'), c('ht1', 'wt1'))
 ```
 
-Within-twin variances-covariances are like phenotypic relationships. These are variabilities of measured traits and relationships between the traits within person. Multivariate twin model assumes that these matrices are equal.
-
-Cross-twin covariances can be within-trait (ht1-ht2) or cross-trait (ht1-wt2). We expect that correlation between ht1 and wt2 is equal to correlation between ht2 and wt1 (but only within zygosity groups).
-
-Variances and covariances look fine, we can perform bivariate analysis.
+When we run a bivariate ACE on the illustration data, the optimizer fails to find optimal parameter values (status code RED). We can check model identification as OpenMx suggests.
 
 ```{r}
 biv_model <- multivariate_ace(twinData2, zyg = 'zyg2',
                               vars = c('ht', 'wt'))
 biv_model <- mxRun(biv_model)
-```
 
-It says that the optimizer failed to find optimal parameter values (status code RED). We then check model identification as OpenMx suggested.
-
-```{r}
 mxCheckIdentification(biv_model)
 ```
 
-Now it says that we have problems with all main parameters: `a`, `c` and `e`. These are three lower triangular matrices that we multiply by themselves to obtain genetic and environmental variances-covariances (Cholesky approach). In this particular case I gonna fix non-shared environmental covariation (`e[2, 1]`) to zero because very rarely two traits correlate because of some person-specific experience. Also, the individual contribution of non-shared environment to height (estimated from univariate ACE) is low, that likely made the non-shared environmental correlarion between height and weight unidentifiable. If some factor does not contribute to individual differences in a trait, it cannot explain relationship between this trait and another trait.
+It says that there are problems with the non-shared environmental parameters (`ACE.e[1,1]`, `ACE.e[2,1]`, `ACE.e[2,2]`). The matrix `e` is actually a Cholesky decomposition of environmental variability: `E = e %*% t(e)`. I will eliminate non-shared environmental correlation between height and weight by constraining `e[2, 1] == 0`.
 
 ```{r}
 biv_model <- multivariate_ace(twinData2, zyg = 'zyg2',
                               vars = c('ht', 'wt'))
-biv_model$e$values[2, 1] <- 0     # This might not be the best way to fix a parameter
+biv_model$e$values[2, 1] <- 0     ## This is not the only way to fix a parameter
 biv_model$e$free[2, 1] <- FALSE
 
 biv_model <- mxRun(biv_model)
 
-# It works fine now
+## It works fine now
 
 get_output_tables(biv_model)
 
-ref_models(biv_model) <- ref_models(biv_model)
-biv_model <- run_ref_models(biv_model)
+biv_model <- ref_models(biv_model)
 fit_stats(biv_model)
 ```
 
-Now it works fine. Note, this way of constraining environmental correlation will not work in case of more that two phenotypic variables. We can check that we successfully constrained non-shared environmental correlation by looking at the output (`All_correlations`, `E==0`). The model fit is fine considering very good CFI, TLI and RMSEA.
+Now it runs fine. The non-shared environmental correlation was sussessfully eliminated. The chi-square test shows significant difference between the model and the corresponding saturated model but CFI, TLI and RMSEA suggest good fit.
 
-The bivariate twin model brings the following pieces of the output:
-  - variance components - the contributions of genetic and environmental effects to individual differences in each phenotypic variable in the analysis,
-  - genetic and environmental correlations, estimated phenotypic correlation and percent of phenotypic correlation accounted for by the overlap in genetic and environmental effects,
-  - genetic, environmental and phenotypic correlations placed in separate tables.
+The output tables of a bivariate/univatiate ACE model:
 
-
+  - __`Variance_compinents`__: percent of total variance of each variable accounted for by genetic, shared environmental and non-shared environmental factors.
+  - __`All_correlations`__: genetic and environmental correlations (`rA`, `rC`, `rE`), total (phenotypic) correlation (`Total`), percent of correlation accounted for by genetic, shared environmental and non-shared environmental factors (`A(%)`, `C(%)`, `E(%)`).
+  - __`A_correlations`, `C_correlations`, `E_correlations`, `Total_correlations`__: genetic, environmental and total correlation matrices. 
 
 # Notes:
 
-  1. The models with cathegorical outcomes: different fit function and fit statistics may be needed
+  1. The models with categorical outcomes: different fit function and fit statistics may be needed
   2. In multivariate models we can achieve genetic and environmental correlations with opposite sign. This means that one factor will contribute to phenotypic relationship positively and another negatively. In this case we have to treat percents with caution. I use absolute value of correlations to compute percents.
-  3. If the model has not been fit yet, get_output_tables() will throw error
+  3. If the model has not been fit, `get_output_tables()` will throw an error.
+  4. Also, check the package [`umx`](http://tbates.github.io/) that provides a lot of functionality for SEM and twin analysis.

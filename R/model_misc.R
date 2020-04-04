@@ -78,70 +78,44 @@ output_tables <- function(model){
 }
 
 #' @rdname ref_models
-#' @title Define saturared and independence models.
+#' @title Define saturated and independence models
 #'
-#' @description The functions to define, fit and store the reference models.
-#' The reference models are stored in the \code{options} slot of the target
-#' model.
-#'
+#' @description A function to define and run two reference models: Saturated and Independence.
+#' The reference models are stored in the \code{options} slot of the target model.
+
 #' @param model \code{MxModel} object
-#' @param ref_models the list of length two of \code{MxModel}s
-#'        (saturated and independence) or \code{NULL}.
-#' @param ... arguments passed to \code{mxRefModels} or \code{mxRun}
-#'        (e.g., \code{run = TRUE}).
+#' @param ref_models a named list of length two of \code{MxModels} (Saturated and Independence).
+#'        If \code{NULL}, \code{mxRefModels} is used to define reference models.
+#' @param run should we fit the reference models? Default is \code{TRUE}.
+#' @param ... arguments passed to \code{mxRefModels}.
 #'
-#' @return \code{def_ref_models} returns the \code{MxModel}
-#'         (\code{`ref_models<-`} is an alias)).
-#'
-#'         \code{ref_models} returns the list of \code{MxModel}s.
-#'
-#'         \code{run_ref_models} runs the parameter estimation for the
-#'         reference models and return the \code{MxModel}.
+#' @return the original model with two reference models appended in the \code{option} slot.
 #'
 #' @note
-#' The idea is to store the reference models together with the original model,
-#' so the function \code{fit_stats} could address them and compute fit
-#' statistics. The user can define the reference models and pass them to the
-#' function (as a list of two \code{MxModels}). When the argument
-#' \code{ref_models} is empty or there is no Saturated or Independence model
-#' in it, the function makes use of \code{mxRefModels}.
+#' If you provide the list with two reference models, the models have to be stored as \code{'Saturated'}
+#' and \code{'Independence'} object within this list. Otherwise they will be thrown away.
 #'
-#' Don't forget to re-define the reference models when you modify the
-#' model's data.
+#' The reference models summarize the data, so don't forget to update the reference models
+#' if you modify the data.
 #'
-#' @examples
 #' @export
-def_ref_models <- function(model,
-                           ref_models = NULL,
-                           ...) {
+ref_models <- function(model, ref_models = NULL, run = TRUE, ...) {
   if (length(ref_models) == 0)
     ref_models <- mxRefModels(model, ...)
-  # TODO: Check that there are only two models: Saturated and Independence
+
+  ref_models <- ref_models[c('Saturated', 'Independence')]
+
+  if (run)
+    ref_models <- lapply(ref_models, mxRun)
+
   model@options$ref_models <- ref_models
   return(model)
 }
 
 #' @rdname ref_models
 #' @export
-`ref_models<-` <- function(model, value) {
-  def_ref_models(model, value)
-}
-
-#' @rdname ref_models
-#' @export
-ref_models <- function(model) {
+get_ref_models <- function(model) {
   model@options$ref_models
-}
-
-#' @rdname ref_models
-#' @export
-run_ref_models <- function(model, ...) {
-  sat_model <- ref_models(model)$Saturated
-  sat_model <- mxRun(sat_model, ...)
-  ind_model <- ref_models(model)$Independence
-  ind_model <- mxRun(ind_model, ...)
-  ref_models(model) <- list(Saturated = sat_model, Independence = ind_model)
-  return(model)
 }
 
 #' @rdname fit_stats
@@ -189,7 +163,7 @@ run_ref_models <- function(model, ...) {
 #' @examples
 #' @export
 fit_stats <- function(model, nested_models = NULL) {
-  refmodels <- ref_models(model)
+  refmodels <- get_ref_models(model)
   modelsum <- summary(model, refModels = refmodels)
   outp <- data.frame(model    = model@name,
                      base     = 'Saturated',

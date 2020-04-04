@@ -200,7 +200,7 @@ multivariate_ace <- function(data, zyg, vars) {
                                      vechs(Cor),
                                      vechs(CorPr_A), vechs(CorPr_C), vechs(CorPr_E)),
                                dimnames=list(indnames,
-                                             c('A', 'C', 'E', 'Total', 'A(%)', 'C(%)', 'E(%)')),
+                                             c('rA', 'rC', 'rE', 'Total', 'A(%)', 'C(%)', 'E(%)')),
                                name='All_correlations'))
 
   output_tables(twmodel) <- c('Variance_components', 'All_correlations',
