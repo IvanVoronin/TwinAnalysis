@@ -30,7 +30,7 @@ What this package can do:
 
 1. Run univariate and multivariate (correlated factors) ACE and ADE models. The models include the output tables with parameters that we usually report.
 
-2. Run [a cross-lag ACE/ADE model](crosslag_ace.html).
+2. Run [a cross-lag ACE/ADE model](https://ivanvoronin.github.io/TwinAnalysis/crosslag_ace.html).
 
 3. Compute descriptive statistics and twin correlations.
 
