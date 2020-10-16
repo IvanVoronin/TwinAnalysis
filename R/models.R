@@ -1,8 +1,29 @@
 #' @export
-cross_lag <- function(data, definition)
+cross_lag <- function(data, definition, data_type = 'raw')
 {
   vars <- unlist(definition)
   nv <- length(vars)
+
+  if (data_type == 'raw' || length(data$means) > 0) {
+    model_means <- mxPath(
+      from = 'one',
+      to = vars,
+      connect = 'all.bivariate',
+      values = 0)
+  } else {
+    model_means <- NULL
+  }
+
+  if (data_type == 'raw') {
+    data <- data[, vars]
+  } else {
+    data <- list(c(data, type = data_type))
+  }
+
+  model_data <- process_twin_data(data,
+                                  data_type = data_type)
+  model_data <- model_data[[1]]
+
   model <- mxModel(
     name = 'crosslag',
     type = 'RAM',
@@ -17,14 +38,10 @@ cross_lag <- function(data, definition)
     ),
 
     # Means.
-    mxPath(
-      from = 'one',
-      to = vars,
-      connect = 'all.bivariate',
-      values = 0
-    ),
+    model_means,
 
-    mxData(data[, vars], type = 'raw')
+    # Data
+    model_data
   )
 
   # Covariances at each time point.

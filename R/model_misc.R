@@ -369,9 +369,18 @@ def_stand_params <- function(model) {
                    eval(parse(text = paste0('mxAlgebra(',
                                             params_alg,
                                             ', dimnames = param_dimnames,
-                                            name = "Parameter_table")'))),
-                   mxAlgebra(t(M), dimnames = list(vars, 'Mean'), name = 'Means'))
-  output_tables(model) <- c('Parameter_table', 'Means')
+                                            name = "Parameter_table")'))))
+
+  if (length(model$M) > 0) {
+    model <- mxModel(model,
+                     mxAlgebra(t(M), dimnames = list(vars, 'Mean'),
+                               name = 'Means'))
+    output_tables(model) <- c('Parameter_table', 'Means')
+  } else {
+    output_tables(model) <- c('Parameter_table')
+  }
+
+
 
   return(model)
 }

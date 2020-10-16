@@ -1,42 +1,50 @@
 #' @export
-univariate_ace <- function(data, zyg, vars) { # vars is length 1
+univariate_ace <- function(data, zyg = character(0),
+                           vars = character(0),
+                           data_type = 'raw') { # vars is length 1
   require(OpenMx)
-  if (length(vars) > 1) {
-    warning('vars has to be length 1')
-    vars <- vars[1]
+  if (length(vars) != 1) {
+    stop('vars has to be of length 1')
   }
   selvars <- paste0(vars, 1:2)
   nv <- 1
 
   # Starting values
-  longdata <-reshape(data[, selvars],
-                     varying = selvars,
-                     v.names = vars,
-                     direction = 'long')
-  startmean <- 0.9 * mean(longdata[, vars], na.rm = TRUE)
-  startvar <- sqrt(0.3 * var(longdata[, vars], na.rm = TRUE))
+  startval <- compute_starting_values(
+    model = 'univariate_ace',
+    data = data,
+    data_type = data_type,
+    vars = vars
+  )
 
-  mzdata <- data[data[[zyg]] == 'MZ', selvars]
-  dzdata <- data[data[[zyg]] == 'DZ', selvars]
+  # Process twin data into MxData
+  datalist <- process_twin_data(
+    data = data,
+    vars = vars,
+    data_type = data_type,
+    zyg = zyg
+  )
 
   twmodel <- mxModel(name = 'ACE',
+                     # Means matrix
                      mxMatrix(type = 'Full',
                               nrow = 1, ncol = nv,
-                              free = TRUE, values = startmean,
+                              free = startval$freemean,
+                              values = startval$means,
                               name = 'mean'),
                      mxAlgebra(cbind(mean, mean),
                                name = 'expMeans'),
                      mxMatrix(type = 'Lower',
                               nrow = nv, ncol = nv,
-                              free = TRUE, values = startvar,
+                              free = TRUE, values = sqrt(0.3 * startval$var),
                               name = 'a'),
                      mxMatrix(type = 'Lower',
                               nrow = nv, ncol = nv,
-                              free = TRUE, values = startvar,
+                              free = TRUE, values = sqrt(0.3 * startval$var),
                               name = 'c'),
                      mxMatrix(type = 'Lower',
                               nrow = nv, ncol = nv,
-                              free = TRUE, values = startvar,
+                              free = TRUE, values = sqrt(0.3 * startval$var),
                               name = 'e'),
                      mxAlgebra(t(a) %*% a, name = 'A'),
                      mxAlgebra(t(c) %*% c, name = 'C'),
@@ -49,13 +57,15 @@ univariate_ace <- function(data, zyg, vars) { # vars is length 1
                                name = 'expCovDZ'),
 
                      mxModel(name = 'MZ',
-                             mxData(observed = mzdata, type = 'raw'),
+                             # mxData(observed = mzdata, type = 'raw'),
+                             datalist$MZ,
                              mxExpectationNormal(covariance = 'ACE.expCovMZ',
                                                  means = 'ACE.expMeans',
                                                  dimnames = selvars),
                              mxFitFunctionML()),
                      mxModel(name = 'DZ',
-                             mxData(observed = dzdata, type = 'raw'),
+                             # mxData(observed = dzdata, type = 'raw'),
+                             datalist$DZ,
                              mxExpectationNormal(covariance = 'ACE.expCovDZ',
                                                  means = 'ACE.expMeans',
                                                  dimnames = selvars),
@@ -80,7 +90,9 @@ univariate_ace <- function(data, zyg, vars) { # vars is length 1
 }
 
 #' @export
-multivariate_ace <- function(data, zyg, vars) {
+multivariate_ace <- function(data, zyg = character(0),
+                             vars = character(0),
+                             data_type = 'raw') {
   require(OpenMx)
 
   nv <- length(vars)
@@ -91,34 +103,59 @@ multivariate_ace <- function(data, zyg, vars) {
   indnames <- indnames[row(indnames) > col(indnames)]
 
   # Starting values
-  longdata <-reshape(data[, selvars],
-                     varying = selvars,
-                     v.names = vars,
-                     direction = 'long')
-  startmean <- 0.9 * sapply(longdata[, vars], mean, na.rm = TRUE)
-  startchol <- chol(0.3 * var(longdata[, vars], na.rm = TRUE))
+  # longdata <-reshape(data[, selvars],
+  #                    varying = selvars,
+  #                    v.names = vars,
+  #                    direction = 'long')
+  # startmean <- 0.9 * sapply(longdata[, vars], mean, na.rm = TRUE)
+  # startchol <- chol(0.3 * var(longdata[, vars], na.rm = TRUE))
 
-  mzdata <- data[data[[zyg]] == 'MZ', selvars]
-  dzdata <- data[data[[zyg]] == 'DZ', selvars]
+
+  # mzdata <- data[data[[zyg]] == 'MZ', selvars]
+  # dzdata <- data[data[[zyg]] == 'DZ', selvars]
+
+  # Starting values
+  startval <- compute_starting_values(
+    model = 'multivariate_ace',
+    data = data,
+    data_type = data_type,
+    vars = vars
+  )
+
+  # Process twin data into MxData
+  datalist <- process_twin_data(
+    data = data,
+    vars = vars,
+    data_type = data_type,
+    zyg = zyg
+  )
 
   twmodel <- mxModel(name = 'ACE',
                      mxMatrix(type = 'Full',
                               nrow = 1, ncol = nv,
-                              free = TRUE, values = startmean,
+#                              free = TRUE, values = startmean,
+                              free = startval$freemean,
+                              values = startval$means,
                               name = 'mean'),
                      mxAlgebra(cbind(mean, mean),
                                name = 'expMeans'),
                      mxMatrix(type = 'Lower',
                               nrow = nv, ncol = nv,
-                              free = TRUE, values = t(startchol),
+                              free = TRUE,
+                              # values = t(startchol),
+                              values = 0.6 * startval$chol,
                               name = 'a'),
                      mxMatrix(type = 'Lower',
                               nrow = nv, ncol = nv,
-                              free = TRUE, values = t(startchol),
+                              free = TRUE,
+                              # values = t(startchol),
+                              values = 0.6 * startval$chol,
                               name = 'c'),
                      mxMatrix(type = 'Lower',
                               nrow = nv, ncol = nv,
-                              free = TRUE, values = t(startchol),
+                              free = TRUE,
+                              # values = t(startchol),
+                              values = 0.6 * startval$chol,
                               name = 'e'),
                      mxAlgebra(t(a) %*% a, name = 'A'),
                      mxAlgebra(t(c) %*% c, name = 'C'),
@@ -132,13 +169,15 @@ multivariate_ace <- function(data, zyg, vars) {
                                name = 'expCovDZ'),
 
                      mxModel(name = 'MZ',
-                             mxData(observed = mzdata, type = 'raw'),
+                             # mxData(observed = mzdata, type = 'raw'),
+                             datalist$MZ,
                              mxExpectationNormal(covariance = 'ACE.expCovMZ',
                                                  means = 'ACE.expMeans',
                                                  dimnames = selvars),
                              mxFitFunctionML()),
                      mxModel(name = 'DZ',
-                             mxData(observed = dzdata, type = 'raw'),
+                             # mxData(observed = dzdata, type = 'raw'),
+                             datalist$DZ,
                              mxExpectationNormal(covariance = 'ACE.expCovDZ',
                                                  means = 'ACE.expMeans',
                                                  dimnames = selvars),

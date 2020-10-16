@@ -94,7 +94,109 @@ twin_ref_models <- function(model, run = FALSE, ...) {
   return(model)
 }
 
+#' @title Process twin data into MxData objects
+#'
+#' @description Process twin data into MxData objects to add to MxModel.
+#' The function accepts raw data and covariance matrices.
+#'
+#' @param data \code{data.frame} or \code{list}
+#' @param data_type 'raw', 'cov' or 'cor', as required by \code{type} parameter
+#' of \code{mxData}
+#' @param zyg factor used to split the data frame when data_type = 'raw'
+#'
+#' @details
+#' When data_type = 'raw' (default), the data must be a data frame or matrix
+#' with raw data that will be split upon factor \code{zyg} and passed to
+#' \code{mxData}. When data_type = 'cov' or 'cor', the data  must be a (named)
+#' list of arguments passed to \code{mxData}, including \code{observed} -
+#' covariation or correlation matrix, \code{numObs} - number of observations,
+#' \code{means} - vector of means. The \code{type} argument is not required as
+#' it is added from \code{data_type}. Refer to \code{?mxData} for details on
+#' \code{mxData} arguments.
+#'
+#' @return A list of \code{MxData} objects
+#'
+#' @export
+process_twin_data <- function(data,
+                              vars,
+                              data_type = 'raw',
+                              zyg = character(0)) {
+  selvars <- paste0(vars, rep(1:2, each = length(vars)))
+
+  if (data_type == 'raw') {
+    if (length(zyg) == 0) {
+      data <- list(data = as.data.frame(data[, selvars]))
+    } else {
+      data <- split(as.data.frame(data[, selvars]),
+                    data[, zyg])
+    }
+
+    lapply(data, function(x) {
+      mxData(observed = x,
+             type = 'raw')
+    })
+  } else {
+    data <- lapply(data, function(x) c(x, list(type = data_type)))
+    means <- lapply(data, `[[`, 'means')
+    if (any(sapply(means, length) == 0) || any(sapply(means, is.na))) {
+      data <- lapply(data,
+                     function(x)
+                       c(x, list(means = setNames(rep(0, 2 * length(vars)),
+                                                  selvars))))
+    }
+    lapply(data, do.call, what = mxData)
+  }
+}
+
+#' @export
+compute_starting_values <- function(model, data,
+                                    data_type = 'raw',
+                                    vars = character(0)) {
+  # This function computes starting values for a given model
+  # It assumes that the variables are coded var1 and var2 for two twins
+  if (data_type == 'raw') {
+    longdata <- reshape(data,
+                        varying = lapply(vars, paste0, 1:2),
+                        v.names = vars,
+                        direction = 'long')
+    startmean <- 0.9 * colMeans(longdata[, vars, drop = FALSE], na.rm = TRUE)
+    freemean <- TRUE
+    covmat <- cov(longdata[, vars, drop = FALSE], use = 'pairwise')
+  } else {
+    means <- lapply(data, `[[`, 'means')
+    if (all(sapply(means, length) > 0)) {
+      startmean <- 0.9 * Reduce(`+`, means) / length(means)
+      freemean <- TRUE
+    } else {
+      startmean <- 0
+      freemean <- FALSE
+    }
+
+    covs <- lapply(data, `[[`, 'observed')
+    covs <- lapply(covs, function(x) {
+      (x[paste0(vars, 1), paste0(vars, 1), drop = FALSE] +
+         x[paste0(vars, 1), paste0(vars, 1), drop = FALSE]) / 2
+    })
+
+    covmat <- Reduce(`+`, covs) / length(covs)
+  }
+
+  outp <- list(means = startmean,
+               freemean = freemean)
+
+  if (model == 'univariate_ace') {
+    outp$var <- 0.9 * covmat
+  }
+
+  if (model == 'multivariate_ace') {
+    outp$chol <- t(chol(0.9 * covmat))
+  }
+
+  return(outp)
+}
+
 adjust_twin_data <- function(DV, IV, interaction = TRUE) {
+  # Not used
   result <- DV
   for (i in deps){
     LM <- lm(as.formula(
