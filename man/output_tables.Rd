@@ -11,7 +11,7 @@ def_output_tables(model, output_tables = character(0))
 
 output_tables(model) <- value
 
-get_output_tables(model, CIs = TRUE)
+get_output_tables(model, tables = character(0), CIs = TRUE)
 
 output_tables(model)
 }

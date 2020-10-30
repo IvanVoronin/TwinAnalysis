@@ -46,16 +46,18 @@ def_output_tables <- function(model, output_tables = character(0)) {
 
 #' @rdname output_tables
 #' @export
-get_output_tables <- function(model, CIs = TRUE) {
-  output_tables <- output_tables(model)
-  pars <- lapply(output_tables, mxEvalByName, model)
-  names(pars) <- output_tables
+get_output_tables <- function(model, tables = character(0), CIs = TRUE) {
+  if (length(tables) == 0)
+    tables <- output_tables(model)
+
+  pars <- lapply(tables, mxEvalByName, model)
+  names(pars) <- tables
   cis <- if (CIs)
     get_ci(model)
   else NULL
 
   outp <- list()
-  for (i in output_tables) {
+  for (i in tables) {
     if (length(cis[[i]]) == 0) {
       outp[[i]] <- pars[[i]]
     } else {
@@ -339,7 +341,7 @@ def_stand_params <- function(model) {
     mxAlgebra(solve(I - A) %&% S, name =
                 'V'),
     mxAlgebra(sqrt(I * V), name = 'SDs'),
-    mxAlgebra(t(solve(SDs)) %*% S %*% solve(SDs), name = 'Sst'),
+    mxAlgebra(solve(SDs) %*% S %*% solve(SDs), name = 'Sst'),
     mxAlgebra(solve(SDs) %*% A %*% SDs, name = 'Ast')
   )
 
@@ -383,4 +385,23 @@ def_stand_params <- function(model) {
 
 
   return(model)
+}
+
+#' @export
+process_data <- function(data,
+                         vars,
+                         data_type = 'raw') {
+  if (data_type == 'raw') {
+    return(
+      mxData(observed = data,
+             type = 'raw')
+    )
+  } else {
+    data$type <- data_type
+
+    if (length(data$means == 0) || any(is.na(data$means))) {
+      data$means <- rep(0, length(vars))
+    }
+    return(do.call('mxData', data))
+  }
 }

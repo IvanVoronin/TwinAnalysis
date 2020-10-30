@@ -1,7 +1,7 @@
 Package: TwinAnalysis
 Type: Package
 Title: This is a package to simplify structural equation modeling - and particularly, twin analysis - in R.
-Version: 0.1.0
+Version: 0.2.0
 Author: Ivan Voronin
 Maintainer: Ivan Voronin <ivan.a.voronin@gmail.com>
 Description: The package is based on the functionality of OpenMx package and aims to provide a shortcut between

@@ -1,3 +1,10 @@
+.onAttach <- function(libname, pkgname) {
+  if (length(getOption('TwinAnalysis.sep')) == 0)
+    options(TwinAnalysis.sep = '')
+}
+
+#' @import OpenMx mlth.data.frame glue
+
 #' @rdname twin_ref_models
 #' @title Define twin reference models
 #'
@@ -118,30 +125,29 @@ twin_ref_models <- function(model, run = FALSE, ...) {
 #'
 #' @export
 process_twin_data <- function(data,
-                              vars,
+                              selvars,
                               data_type = 'raw',
                               zyg = character(0)) {
-  selvars <- paste0(vars, rep(1:2, each = length(vars)))
 
   if (data_type == 'raw') {
-    if (length(zyg) == 0) {
-      data <- list(data = as.data.frame(data[, selvars]))
-    } else {
       data <- split(as.data.frame(data[, selvars]),
                     data[, zyg])
-    }
 
     lapply(data, function(x) {
       mxData(observed = x,
              type = 'raw')
     })
   } else {
+    data <- lapply(data, function(x) {
+      x$observed <- x$observed[selvars, selvars]
+      x
+    })
     data <- lapply(data, function(x) c(x, list(type = data_type)))
     means <- lapply(data, `[[`, 'means')
     if (any(sapply(means, length) == 0) || any(sapply(means, is.na))) {
       data <- lapply(data,
                      function(x)
-                       c(x, list(means = setNames(rep(0, 2 * length(vars)),
+                       c(x, list(means = setNames(rep(0, length(selvars)),
                                                   selvars))))
     }
     lapply(data, do.call, what = mxData)
@@ -151,14 +157,17 @@ process_twin_data <- function(data,
 #' @export
 compute_starting_values <- function(model, data,
                                     data_type = 'raw',
-                                    vars = character(0)) {
+                                    vars = character(0),
+                                    sep = '',
+                                    ...) {
   # This function computes starting values for a given model
   # It assumes that the variables are coded var1 and var2 for two twins
   if (data_type == 'raw') {
     longdata <- reshape(data,
-                        varying = lapply(vars, paste0, 1:2),
+                        varying = lapply(vars, paste, 1:2, sep = sep),
                         v.names = vars,
-                        direction = 'long')
+                        direction = 'long',
+                        sep = sep)
     startmean <- 0.9 * colMeans(longdata[, vars, drop = FALSE], na.rm = TRUE)
     freemean <- TRUE
     covmat <- cov(longdata[, vars, drop = FALSE], use = 'pairwise')
@@ -174,8 +183,8 @@ compute_starting_values <- function(model, data,
 
     covs <- lapply(data, `[[`, 'observed')
     covs <- lapply(covs, function(x) {
-      (x[paste0(vars, 1), paste0(vars, 1), drop = FALSE] +
-         x[paste0(vars, 1), paste0(vars, 1), drop = FALSE]) / 2
+      (x[paste(vars, 1, sep = sep), paste(vars, 1, sep = sep), drop = FALSE] +
+         x[paste(vars, 2, sep = sep), paste0(vars, 2, sep = sep), drop = FALSE]) / 2
     })
 
     covmat <- Reduce(`+`, covs) / length(covs)
@@ -184,12 +193,23 @@ compute_starting_values <- function(model, data,
   outp <- list(means = startmean,
                freemean = freemean)
 
+  dots <- list(...)
+
   if (model == 'univariate_ace') {
     outp$var <- 0.9 * covmat
   }
 
   if (model == 'multivariate_ace') {
     outp$chol <- t(chol(0.9 * covmat))
+  }
+
+  if (model == 'cross_lag_ace') {
+    pheno <- cross_lag(list(observed = covmat / 3,
+                            numObs = 1000),
+                       data_type = 'cov',
+                       definition = dots$definition)
+    pheno <- mxRun(pheno)
+    outp$pheno <- pheno
   }
 
   return(outp)

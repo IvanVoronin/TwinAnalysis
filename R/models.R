@@ -17,12 +17,13 @@ cross_lag <- function(data, definition, data_type = 'raw')
   if (data_type == 'raw') {
     data <- data[, vars]
   } else {
-    data <- list(c(data, type = data_type))
+#    data <- list(c(data, type = data_type))
   }
 
-  model_data <- process_twin_data(data,
-                                  data_type = data_type)
-  model_data <- model_data[[1]]
+  model_data <- process_data(data,
+                             vars = vars,
+                             data_type = data_type)
+#  model_data <- model_data[[1]]
 
   model <- mxModel(
     name = 'crosslag',
