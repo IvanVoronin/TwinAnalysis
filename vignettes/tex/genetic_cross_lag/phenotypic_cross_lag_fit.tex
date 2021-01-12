@@ -1,0 +1,66 @@
+\documentclass[tikz]{standalone}
+
+% color definitions
+\usepackage{color}
+\definecolor{A}{RGB}{255,71,71}
+\definecolor{D}{RGB}{0,199,99}
+\definecolor{C}{RGB}{36,145,255}
+\definecolor{E}{RGB}{255,128,0}
+\definecolor{Env}{RGB}{20, 210, 60}
+\definecolor{Pheno}{RGB}{204, 204, 204}
+
+\definecolor{Acol}{RGB}{255,71,71}
+\definecolor{Dcol}{RGB}{0,199,99}
+\definecolor{Ccol}{RGB}{36,145,255}
+\definecolor{Ecol}{RGB}{255,128,0}
+
+\newcommand{\colA}[1]{\textcolor{Acol}{#1}}
+\newcommand{\colD}[1]{\textcolor{Dcol}{#1}}
+\newcommand{\colC}[1]{\textcolor{Ccol}{#1}}
+\newcommand{\colE}[1]{\textcolor{Ecol}{#1}}
+
+\usepackage{pgf}
+\usepackage{tikz}
+\usepackage{pgfplots}
+\usetikzlibrary{arrows}
+\usetikzlibrary{matrix}
+\usetikzlibrary{shapes}
+\usetikzlibrary{fit}
+\usetikzlibrary{positioning}
+\usetikzlibrary{arrows.meta}
+\usetikzlibrary{calc}
+\tikzstyle{latent}=[circle, draw=black, thick]
+\tikzstyle{manifest}=[rectangle, draw=black, thick, fill=white]
+\tikzstyle{factor}=+[latent, fill=blue!20] 
+\tikzstyle{A}=+[latent, fill=Acol, draw=Acol!30!black,text=Acol!30!black]
+\tikzstyle{C}=+[latent, fill=Ccol, draw=Ccol!30!black,text=Ccol!30!black,opacity=0.3]
+\tikzstyle{E}=+[latent, fill=Ecol, draw=Ecol!30!black,text=Ecol!30!black,opacity=0.2]
+\tikzstyle{D}=+[latent, fill=Dcol, draw=Dcol!30!black,text=Dcol!30!black]
+\tikzstyle{label}=[fill=white, circle, inner sep=1pt, minimum size=1pt] 
+\tikzstyle{tiny label}+=[label, font=\scriptsize]
+\tikzstyle{dub arrow1}=[shorten >= 2pt, shorten <= 2pt, dashed,line width=1.5,
+transform canvas={shift={(-0.15,0)}}]
+\tikzstyle{dub arrow2}=[shorten >= 2pt, shorten <= 2pt, dashed,line width=1.5,
+transform canvas={shift={(0.15,0)}}] 
+\tikzstyle{small node}=[scale=0.6]
+
+\renewcommand{\familydefault}{\sfdefault}
+
+\begin{document}
+	\begin{tikzpicture}[>=latex,node distance = 1.45 cm, minimum size = 1cm]
+			\matrix[column sep = 6cm,row sep = 4cm]{
+				\node (X1) at (0,0) [manifest] {$X1$}; &
+				\node (X2) at (0,0) [manifest] {$X2$}; \\
+				\node (Y1) at (0,0) [manifest] {$Y1$}; &
+				\node (Y2) at (0,0) [manifest] {$Y2$}; \\
+			};
+			\path[->,shorten >= 2pt, shorten <= 2pt,line width=2,gray]
+				(X1.east) edge node [label] {$0.274$} (X2.west)
+				(X1.east) edge node [label, pos=0.3] {$0.388$} (Y2.west)
+				(Y1.east) edge node [label] {$0.254$} (Y2.west)
+				(Y1.east) edge node [label, pos = 0.3] {$0.315$} (X2.west);
+			\path[<->,shorten >= 2pt, shorten <= 2pt, bend left = 30, out = -30, in = -150, line width=2,gray]
+				(X1.west) edge node [label] {$0.258$} (Y1.west)
+				(Y2.east) edge [dashed] node [label] {$0.442$} (X2.east);
+	\end{tikzpicture}
+\end{document}

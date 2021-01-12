@@ -21,43 +21,65 @@ knitr::opts_chunk$set(
 )
 ```
 
+# Intro
 
-Hi,
+This vignette illustrates the functionality of `TwinAnalysis` package for 
+twin analysis (the statistical analysis of the data of twins in a twin study). 
 
-This vignette has a purpose to illustrate the functionality of `TwinAnalysis` package for statistical analysis of twin data. 
+This package __can__:
 
-What this package can do:
+1. Build and run the univariate and multivariate (correlated factors) ACE and 
+ADE models. 
 
-1. Run univariate and multivariate (correlated factors) ACE and ADE models. The models include the output tables with parameters that we usually report.
+2. Report the parameters and statistics from a twin model in the tables that are
+ready for a paper or report.
 
-2. Run [a cross-lag ACE/ADE model](https://ivanvoronin.github.io/TwinAnalysis/crosslag_ace.html).
+2. Build and run [the cross-lag ACE and ADE models](https://ivanvoronin.github.io/TwinAnalysis/crosslag_ace.html).
 
-3. Compute descriptive statistics and twin correlations.
+3. Compute descriptive statistics and twin correlations that often supplement
+the results from the twin analysis.
 
-What this package cannot do:
+This package __cannot__:
 
-1. The models with categorical outcome variables currently are not supported.
+1. Do the analysis of categorical outcomes.
 
-2. It cannot help to choose the model or fix the model that does not fit the data.
+2. Help to choose the model or fix the model that does not fit the data.
 
-3. The package cannot check distributions, remove outliers or reshape data tables.
+3. Clean or reshape the data. (However, this vignette provides an example of 
+reshaping the data.)
 
-This package entirely relies on functionality of [`OpenMx`](https://openmx.ssri.psu.edu/), a package for structural equation modeling. `OpenMx` is widely used for twin analysis.
 
-`TwinAnalysis` also depends on its companion `mlth.data.frame` package for output tables (refer to the [package vignette](https://ivanvoronin.github.io/mlth.data.frame/)).
+This package builds on the functionality of [`OpenMx`](https://openmx.ssri.psu.edu/), 
+a package for structural equation modeling. `OpenMx` is widely used for twin 
+analysis due to its matrix algebra tools that allow flexible model building.
+This vignette only explains the concepts from `OpenMx` that are essential for the
+use of `TwinAnalysis`. However, it is advisable to learn the syntax of `OpenMx` 
+for the fuller control of the models, particularly for the diagnostic of the 
+(un)fitted models.
 
-It is assumed that the user is familiar with  `OpenMx` package and with the principles of twin analysis. Also, in this vignette I use [`%>%` pipe operator](https://www.datacamp.com/community/tutorials/pipe-r-tutorial) from `dplyr`. 
 
-# Loading the packages and the data
+`TwinAnalysis` uses the `mlth.data.frame` package for the output tables. 
+This package can also gather the tables across the script and write them into a 
+single Excel file. The script for the installation of the package is provided 
+below. For the details on `mlth.data.frame` refer to the 
+[package vignette](https://ivanvoronin.github.io/mlth.data.frame/)).
+
+
+This vignette uses 
+[the pipe operator (`%>%`)](https://www.datacamp.com/community/tutorials/pipe-r-tutorial) 
+from the `dplyr` package. `x %>% f` is equivalent to `f(x)`. For example,
+`d %>% sapply(mean, na.rm = TRUE)` is equivalent to `sapply(d, mean, na.rm)`.
+
+# Installing the package
 
 ```{r install, eval=FALSE}
-## Run the following code to install the packages
-
 # install.packages('devtools')
 library(devtools)
 install_github('ivanvoronin/mlth.data.frame')
 install_github('ivanvoronin/TwinAnalysis')
 ```
+
+# Loading packages and data
 
 ```{r setup}
 ## Load the packages
@@ -158,12 +180,10 @@ twinData$sex2 <- twinData$zygosity %>%
 # There are many alternative ways to do the same thing
 # I also like to check whether the manipulations with the data
 # did the right thing, like so:
-table(twinData$zygosity, twinData$zyg)
-table(twinData$zygosity, twinData$sex1)
-table(twinData$zygosity, twinData$sex2)
+with(twinData, table(zygosity, zyg))
+with(twinData, table(zygosity, sex1))
+with(twinData, table(zygosity, sex2))
 ```
-
-The zygosity __must__ be labeled as `'MZ'` or `'DZ'`. 
 
 Finally, for this analysis I will select only the younger cohort of participants.
 
@@ -191,9 +211,12 @@ get_fisher_z(twinData2, zyg = 'zyg',
              compare = c('DZss', 'DZos'))
 ```
 
-In this dataset there is noticeable difference between DZ twin 1 and DZ twin 2 in height and weight. This is a natural result of twin 1 being female and twin 2 being male in this group. The twin similarity is lower in DZos pairs comparing to DZss pairs, perhaps as the result of sex differences. Finally, $r_{MZ} > 2r_{DZ}$ for BMI which means that non-additive genetic effects may contribute to this phenotype and ADE model may be appropriate.
+In this dataset there is noticeable difference between DZ twin 1 and DZ twin 2 in height and weight. This is a natural result of twin 1 being female and twin 2 being male in this group. The twin similarity is lower in DZos pairs comparing to DZss pairs, perhaps as the result of gender differences. Finally, $r_{MZ} > 2r_{DZ}$ for BMI which means that non-additive genetic effects may contribute to this phenotype and ADE model may be appropriate.
 
-For now, I ignore sex differences and exclude DZos pairs from the analysis by making a new zygosity variable.
+For now, I ignore gender differences and exclude DZos pairs from the analysis by making a new zygosity variable.
+
+The models only accept zygosity as a factor variable with labels `'MZ'` and `'DZ'`. 
+
 
 ```{r}
 twinData2$zyg2 <- twinData2$zyg %>%
@@ -218,7 +241,7 @@ Let's fit a univariate ACE model to BMI.
 
 ```{r}
 ## Define the model
-bmi_univ <- univariate_ace(twinData2, zyg = 'zyg2', vars = 'bmi')
+bmi_univ <- univariate_ace(twinData2, zyg = 'zyg2', ph = 'bmi')
 
 ## Fit MxModel
 bmi_univ <- mxRun(bmi_univ)
@@ -230,7 +253,7 @@ summary(bmi_univ)
 get_output_tables(bmi_univ)
 ```
 
-`univariate_ace()` returns an MxModel object which means that you can do everything you usually do with `OpenMx` models: run parameter fitting (`mxRun()`, `mxTryHard()`), get model summary (`summary()`), add/detele matrices and algebra from a model (`mxModel()`), add constraints (`mxConstraint()`) etc.
+`univariate_ace()` returns an MxModel object which means that you can do everything you usually do with `OpenMx` models: run parameter fitting (`mxRun()`, `mxTryHard()`), get model summary (`summary()`), add/delete matrices and algebra from a model (`mxModel()`), add constraints (`mxConstraint()`) etc.
 
 ```{r}
 bmi_univ
@@ -280,7 +303,7 @@ When there are several phenotypic variables to fit a univariate twin model upon,
 univ_models <- list()
 
 for (v in c('ht', 'wt', 'bmi')) {
-  model <- univariate_ace(twinData2, zyg = 'zyg2', vars = v)
+  model <- univariate_ace(twinData2, zyg = 'zyg2', ph = v)
   model <- mxRun(model, intervals = TRUE)   ## This time I evaluate CIs
   model <- ref_models(model)
 
@@ -327,17 +350,19 @@ When we run a bivariate ACE on the illustration data, the optimizer fails to fin
 
 ```{r}
 biv_model <- multivariate_ace(twinData2, zyg = 'zyg2',
-                              vars = c('ht', 'wt'))
+                              ph = c('ht', 'wt'))
 biv_model <- mxRun(biv_model)
 
 mxCheckIdentification(biv_model)
+
+get_output_tables(biv_model)
 ```
 
 It says that there are problems with the non-shared environmental parameters (`ACE.e[1,1]`, `ACE.e[2,1]`, `ACE.e[2,2]`). The matrix `e` is actually a Cholesky decomposition of environmental variability: `E = e %*% t(e)`. I will eliminate non-shared environmental correlation between height and weight by constraining `e[2, 1] == 0`.
 
 ```{r}
 biv_model <- multivariate_ace(twinData2, zyg = 'zyg2',
-                              vars = c('ht', 'wt'))
+                              ph = c('ht', 'wt'))
 biv_model$e$values[2, 1] <- 0     ## This is not the only way to fix a parameter
 biv_model$e$free[2, 1] <- FALSE
 
@@ -353,7 +378,7 @@ fit_stats(biv_model)
 
 Now it runs fine. The non-shared environmental correlation was sussessfully eliminated. The chi-square test shows significant difference between the model and the corresponding saturated model but CFI, TLI and RMSEA suggest good fit.
 
-The output tables of a bivariate/univatiate ACE model:
+The output tables of a bivariate/multivatiate ACE model:
 
   - __`Variance_compinents`__: percent of total variance of each variable accounted for by genetic, shared environmental and non-shared environmental factors.
   - __`All_correlations`__: genetic and environmental correlations (`rA`, `rC`, `rE`), total (phenotypic) correlation (`Total`), percent of correlation accounted for by genetic, shared environmental and non-shared environmental factors (`A(%)`, `C(%)`, `E(%)`).
@@ -361,7 +386,13 @@ The output tables of a bivariate/univatiate ACE model:
 
 # Notes:
 
-  1. The models with categorical outcomes: different fit function and fit statistics may be needed
+  1. The models with categorical outcomes: different fit function and fit statistics may be needed.
   2. In multivariate models we can achieve genetic and environmental correlations with opposite sign. This means that one factor will contribute to phenotypic relationship positively and another negatively. In this case we have to treat percents with caution. I use absolute value of correlations to compute percents.
   3. If the model has not been fit, `get_output_tables()` will throw an error.
   4. Also, check the package [`umx`](http://tbates.github.io/) that provides a lot of functionality for SEM and twin analysis.
+
+```{r include=FALSE}
+file.copy(from = 'twin-analysis-workflow.html',
+          to = '../docs/index.html',
+          overwrite = TRUE)
+```
