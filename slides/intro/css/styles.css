@@ -1,0 +1,200 @@
+body {
+  background: #58595A;
+  background-color: #58595A;
+}
+
+p { 
+  text-align: left; 
+}
+
+mark {
+  color: #F5DF4D;
+  background-color: inherit;
+}
+
+.reveal {
+  font-family: "Public Sans", "Open Sans Regular", sans-serif;
+  color: #F0EEE9;
+}
+
+.reveal h1, 
+.reveal h3, 
+.reveal h4,
+.reveal h5,
+.reveal h6 {
+  text-transform: none;
+}
+
+.reveal .remark {
+  font-size: 80%;
+  font-style: italic;
+  padding-left: 50px;
+}
+
+.reveal h2 { 
+  font-size: 1.3em; 
+  text-transform: none;
+}
+
+.reveal blockquote {
+  width:80%;
+}
+
+.container{
+    display: flex;
+}
+.col{
+    flex: 1;
+}
+
+.reveal section img{
+  display: block;
+  background: rgba(0, 0, 10, 0.45);
+  border: 0px;           
+  box-shadow: 10px 6px 15px 5px rgba(0,0,0,0.1);
+  margin: 0 auto;
+  padding: 0;
+}
+
+.reveal img[alt$="<>"] {
+    display: block;
+    max-width: 100%;
+    height: auto;
+    margin: auto;
+    float: none!important;
+}
+
+.column {
+  float: left;
+  width: 50%;
+}
+
+/* Clear floats after the columns */
+.row:after {
+  content: "";
+  display: table;
+  clear: both;
+}
+
+.reveal code {
+  background-color: inherit;
+  padding: 2px 7px;
+}
+
+code.sourceCode {
+  background-color: #FFFFFF44;
+  padding: 2px 7px;
+}
+
+.reveal pre code {
+  max-height: 490px;
+}
+
+.reveal table {
+  background-color: gray;
+  box-shadow: 10px 6px 15px 5px rgba(0,0,0,0.1);
+}
+
+thead {
+  background-color: #F5DF4D44;
+}
+
+.reveal table tr:hover {
+  background-color: #b32d0055;
+  transition:0.8s;
+}
+
+.reveal table th {
+  border: 0;
+}
+
+code.sourceCode > span {
+  width: 100%;
+}
+
+code.sourceCode > span:hover {
+  background-color: #b32d0055;
+  transition:0.8s;
+}
+
+pre.numberSource {
+  border:none;
+  padding:0;
+}
+
+pre.numberSource code > span {
+    left: 0;
+}
+
+pre.numberSource code > span a {
+    font-size: 80%;
+}
+
+pre.numberSource code > span > a:first-child::before {
+  vertical-align: central;
+  text-decoration: none;
+  width: 3em;
+}
+
+.reveal figcaption {
+  font-size: 60%;
+}
+
+.reveal a {
+  color: #F0A1BF;
+  word-wrap: break-word;
+  word-break: break-word;
+}
+
+code span.kw {
+  color:inherit;
+}
+
+code span.dt {
+  color:inherit;
+}
+
+code span.st {
+  color: #FFF9C4;
+}
+
+code span.ot {
+  color: #C9EAFF;
+}
+
+code span.dv {
+  color: #FED1F8;
+}
+
+code span.fl {
+  color: #FED1F8;
+}
+
+
+code span.co {
+  color: #B6FFB2;
+}
+
+code span.op {
+  color: #C0C0C0;
+}
+
+/* width */
+::-webkit-scrollbar {
+  width: 15px;
+}
+
+/* Track */
+::-webkit-scrollbar-track {
+  background: #FFFFFF22; 
+}
+ 
+/* Handle */
+::-webkit-scrollbar-thumb {
+  background: #00000044; 
+}
+
+/* Handle on hover */
+::-webkit-scrollbar-thumb:hover {
+  background: #00000055; 
+}
