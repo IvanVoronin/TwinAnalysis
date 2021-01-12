@@ -1,7 +1,7 @@
 ---
 title: Twin analysis using <mark>TwinAnalysis</mark>
 author: Ivan Voronin
-date: "`r format(Sys.time(), '%d %B, %Y')`"
+date: "January 12, 2021"
 output: 
   revealjs::revealjs_presentation:
     transition: slide
@@ -28,6 +28,11 @@ knitr::opts_chunk$set(
 - [`TwinAnalysis`](#/twinanalysis)
 - [`OpenMx`](#/openmx)
 - [`mlth.data.frame`](#/mlth.data.frame)
+
+<br>
+
+The R code from this presentation is here:
+[https://raw.githubusercontent.com/IvanVoronin/TwinAnalysis/master/slides/intro/intro.R](https://raw.githubusercontent.com/IvanVoronin/TwinAnalysis/master/slides/intro/intro.R)
 
 
 # Twin method: Fundamentals

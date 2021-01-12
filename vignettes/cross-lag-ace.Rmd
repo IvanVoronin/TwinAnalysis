@@ -6,6 +6,7 @@ output:
   prettydoc::html_pretty:
     theme: cayman
     highlight: github
+    css: css/my_styles.css
 vignette: >
   %\VignetteIndexEntry{Cross-lag ACE model}
   %\VignetteEncoding{UTF-8}
@@ -38,6 +39,28 @@ Map(function(i, o) {
 }, pdfs, svgs)
 ```
 
+1) Done - Start with phenotypic model. (Eg in black.)
+2) The parameter estimates for long and cross-lag associations are different within each of the sub-models.
+It would be interesting to start from phenotypic and decompose these to ACE.
+3) Explain RAM decomposition, put labels in the matrices. Put the explanation to the end of the vignette.
+4) Data structure. Put an example and the reference to another vignette.
+5) Explain Saturated and Independence models.
+6) Path estimates are standardized.
+7) Provide an example of constraining the parameters.
+8) Include the proportion of the path that explained by genetic and environmental relationships. Showing how to do it practically. The users can extend this. Include the proportion of phenotypic correlation accounted for all genetic and environmental latent relationships.
+9) Show how the model can be extended to more measurement occasions and to more measures at each occasion.
+10) Put the note about the intervals.
+11) Put the reference to mlth.data.frame vignette and the note about writing to xlsx
+12) Share latex code for the diagrams.
+13) Write documentation for 'raw', 'cov' and 'cor' data
+14) Check covariance data: all arguments in place for all groups, no missing means
+if present at all, covariation matrices and means have same size and dimnames across
+groups.
+15) Is zygosity as factor (MZ/DZ) necessary for ACE/ADE models? Add to vignettes.
+16) Study the case when variance component is constrained to (near) zero.
+
+# Intro
+
 Hi,
 
 This is a vignette to illustrate an application of the cross-lag ACE model from [the `TwinAnalysis` package](https://ivanvoronin.github.io/TwinAnalysis/).
@@ -66,7 +89,7 @@ c <- matrix(c(
 
 e <- matrix(c(
     0.82, 0   , 0   , 0   ,
-    0.07, 0.58, 0   , 0   ,
+    0.07, 0.77, 0   , 0   ,#    0.07, 0.58, 0   , 0   , 
     0.14, 0.09, 0.77, 0   ,
     0.22, 0.03, 0.32, 0.60),
   ncol = 4, nrow = 4, byrow = TRUE,
@@ -104,11 +127,86 @@ model <- cross_lag_ace(data, 'zyg',
 model <- mxTryHard(model)
 ```
 
+# Phenotypic cross-lag
+
+Cross-lag analysis usually starts with a phenotypic cross-lag model (the figure below). In this model, two traits `X` and `Y` are measured twice: `X1` and `Y1` at time 1 and `X2` and `Y2` at time 2. The model allows covariation between the variables within each measurement (two-way paths) and regression between the variables from the consecutive measurements (one-way paths).
+
+The variability of `X2` and `Y2` is partially explained by the relationships of these two variables with `X1` and `X2`. The residual (or specific for time 2) variability of `X2` and `Y2` is not shown in the figure. The dashed covariation path between `X2` and `Y2` is what's left of the total covariation after taking into account the relationships with `X1` and `Y1`.
+
+![](tex/genetic_cross_lag/phenotypic_cross_lag.svg)
+<br>*Path diagram for a phenotypic cross-lag model*
+
+
+Let's simulate data and fit a phenotypic cross-lag model
+
+```{r}
+# Variance-covariance matrix for data simulation
+V <- matrix(
+  c(1.00, 0.27, 0.36, 0.46,
+    0.27, 1.00, 0.39, 0.36,
+    0.36, 0.39, 1.00, 0.68,
+    0.46, 0.36, 0.68, 1.00),
+  ncol = 4, nrow = 4,
+  byrow = TRUE,
+  dimnames = list(
+    c('X1', 'Y1', 'X2', 'Y2'),
+    c('X1', 'Y1', 'X2', 'Y2')
+  )
+)
+
+data <- MASS::mvrnorm(7000, 
+                      mu = rep(0, 4),
+                      Sigma = V)
+```
+
+
+```{r}
+library(OpenMx)
+library(TwinAnalysis)
+
+# cross_lag function makes a phenotypic cross-lag model
+# The variables are passed in a list:
+#   c('X1', 'Y1') for the variables at time 1
+#   c('X2', 'Y2') for the variables at time 2
+# Any number of measurement occasions 
+#   and variables within each occasion
+#   can be added this way
+pheno <- cross_lag(data,
+                   list(c('X1', 'Y1'),
+                        c('X2', 'Y2')))
+
+pheno2 <- cross_lag(data = list(observed = V, numObs = 1000),
+                    list(c('X1', 'Y1'),
+                         c('X2', 'Y2')),
+                    data_type = 'cov')
+
+pheno <- mxRun(pheno)
+pheno2 <- mxRun(pheno2)
+
+summary(pheno)
+get_output_tables(pheno)
+
+summary(pheno2)
+get_output_tables(pheno2)
+```
+
+
+
+![](tex/genetic_cross_lag/phenotypic_cross_lag_fit.svg)
+<br>*Path diagram for phenotypic cross-lag with path estimates*
+
+
+# Cross-lag ACE
+
+We use twin method to study what structure of genetic and environmental factors
+explains phenotypic relationships between the variables within each measurement
+and across measurement occasions. 
+
 Here is a full cross-lag ACE model with four variables. Two traits `X` and `Y` are measured twice (`X1`, `Y1`, `X2`, `Y2`). Only one twin is shown on the path diagram.
 
 ![](tex/genetic_cross_lag/genetic_cross_lag1.svg){width=80%}
 
-The model includes three sets of latent variables that correspond to the structure of genetic, shared environmental and non-shared environmental variability. Each set mirrors the cross-laged structure of the data. Here are the parameters that represent genetic structure of the traits:
+The model includes three sets of latent variables that correspond to the structure of genetic, shared environmental and non-shared environmental variability. Each set mirrors the cross-lagged structure of the data. Here are the parameters that represent genetic structure of the traits:
 
 ![](tex/genetic_cross_lag/genetic_cross_lag2.svg){width=80%}
 
@@ -208,17 +306,34 @@ dimnames(cov_mz) <- dimnames(cov_dz) <-
   list(paste0(vars, rep(1:2, each = length(vars))), 
        paste0(vars, rep(1:2, each = length(vars))))
 
-mz_data <- MASS::mvrnorm(1000, 
+mz_data <- MASS::mvrnorm(10000, 
                          mu = rep(0, 8),
                          Sigma = cov_mz)
 
-dz_data <- MASS::mvrnorm(1000, 
+dz_data <- MASS::mvrnorm(10000, 
                          mu = rep(0, 8),
                          Sigma = cov_dz)
 
 data <- rbind(cbind(zyg = 'MZ', as.data.frame(mz_data)),
               cbind(zyg = 'DZ', as.data.frame(dz_data)))
 ```
+
+```{r}
+require(glue)
+
+definition = list(c('X1', 'Y1'), c('X2', 'Y2'))
+zyg = 'zyg'
+
+twmodel <- cross_lag_ace(data,
+                         zyg = 'zyg',
+                         definition = list(c('X1', 'Y1'),
+                                           c('X2', 'Y2')))
+
+twmodel <- mxRun(twmodel)
+
+get_output_tables(twmodel)
+```
+
 
 Now we can apply the cross-lag ACE model to the data. The argument `defintion` is a list with the vectors with variable names from each one measurement occasion. Otherwise, the model works just like any other model from `TwinAnalysis` package, refer to another vignette. I present here a minimal example of the application of cross-lag ACE.
 
@@ -231,6 +346,7 @@ model <- cross_lag_ace(data, zyg = 'zyg',
                                          c('X2', 'Y2')))
 
 model <- mxRun(model)
+# model <- mxRun(model, intervals = TRUE)
 
 model <- ref_models(model)
 
@@ -243,6 +359,38 @@ fit_stats(model)
 # Parameter tables
 get_output_tables(model)
 ```
+
+$$ \Sigma{}_{MZ} = \begin{pmatrix}  V_A + V_C + V_E & V_A + V_C \\
+                                  V_A + V_C & V_A + V_C + V_E \end{pmatrix} $$
+
+$$ \Sigma{}_{DZ} = \begin{pmatrix}  V_A + V_C + V_E & 0.5\times{}V_A + V_C \\
+                                  0.5\times{}V_A + V_C & V_A + V_C + V_E \end{pmatrix} $$
+
+$$ V_A = (I - A_A)^{-1}S_A(I - A_A)^{-1\top} \\
+   V_C = (I - A_C)^{-1}S_C(I - A_C)^{-1\top} \\
+   V_E = (I - A_E)^{-1}S_E(I - A_E)^{-1\top} $$
+$$ V_{total} = V_A + V_C + V_E $$
+
+$$ Variance\ components = 
+  \begin{pmatrix} \frac{diag(V_A)}{diag(V_{total})} & 
+                                          \frac{diag(V_C)}{diag(V_{total})} & 
+                                          \frac{diag(V_E)}{diag(V_{total})} &
+                                          \frac{diag(S_A)}{diag(V_{total})} & 
+                                          \frac{diag(S_C)}{diag(V_{total})} & 
+                                          \frac{diag(S_E)}{diag(V_{total})} \\
+  \end{pmatrix}
+  
+
+$$
+
+
+
+
+$$ SD_A = \sqrt{I\times{}V_A} \\
+   SD_C = \sqrt{I\times{}V_C} \\ 
+   SD_E = \sqrt{I\times{}V_E} $$
+
+
 
 Output tables:
 

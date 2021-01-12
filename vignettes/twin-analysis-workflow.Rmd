@@ -390,9 +390,10 @@ The output tables of a bivariate/multivatiate ACE model:
   2. In multivariate models we can achieve genetic and environmental correlations with opposite sign. This means that one factor will contribute to phenotypic relationship positively and another negatively. In this case we have to treat percents with caution. I use absolute value of correlations to compute percents.
   3. If the model has not been fit, `get_output_tables()` will throw an error.
   4. Also, check the package [`umx`](http://tbates.github.io/) that provides a lot of functionality for SEM and twin analysis.
+  5. There is [a presentation](https://ivanvoronin.github.io/TwinAnalysis/intro-slides.html) that explains the basics of twin method and OpenMx and demonstrates the functionality of `TwinAnalysis` and `mlth.data.frame`.
 
 ```{r include=FALSE}
-file.copy(from = 'twin-analysis-workflow.html',
-          to = '../docs/index.html',
+file.copy(from = 'vignettes/twin-analysis-workflow.html',
+          to = 'docs/index.html',
           overwrite = TRUE)
 ```
