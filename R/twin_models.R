@@ -635,6 +635,16 @@ cross_lag_ace <- function(data,
                                       sep = sep,
                                       definition = definition)
 
+  S <- startval$pheno$S
+  cholS <- t(chol(S$values))
+  s <- mxMatrix(
+    type = 'Lower',
+    free = S$free[lower.tri(S$free, diag = TRUE)],
+    values = cholS[lower.tri(cholS, diag = TRUE)],
+    nrow = nrow(cholS),
+    ncol = ncol(cholS)
+  )
+
   # Process twin data into MxData
   datalist <- process_twin_data(
     data = data,
@@ -671,7 +681,10 @@ cross_lag_ace <- function(data,
            function(x) {
              list(
                `$<-`(startval$pheno$A, 'name', glue('A_{x}')),
-               `$<-`(startval$pheno$S, 'name', glue('S_{x}')),
+               `$<-`(s, 'name', glue('s_{x}')),
+               mxAlgebraFromString(
+                 glue('t(s_{x}) %*% s_{x}'),
+                 name = glue('S_{x}')),
                mxAlgebraFromString(
                  glue('solve(I - A_{x}) %&% S_{x}'),
                  name = glue('V_{x}'))
@@ -820,6 +833,16 @@ cross_lag_ade <- function(data,
                                       sep = sep,
                                       definition = definition)
 
+  S <- startval$pheno$S
+  cholS <- t(chol(S$values))
+  s <- mxMatrix(
+    type = 'Lower',
+    free = S$free[lower.tri(S$free, diag = TRUE)],
+    values = cholS[lower.tri(cholS, diag = TRUE)],
+    nrow = nrow(cholS),
+    ncol = ncol(cholS)
+  )
+
   # Process twin data into MxData
   datalist <- process_twin_data(
     data = data,
@@ -856,7 +879,10 @@ cross_lag_ade <- function(data,
            function(x) {
              list(
                `$<-`(startval$pheno$A, 'name', glue('A_{x}')),
-               `$<-`(startval$pheno$S, 'name', glue('S_{x}')),
+               `$<-`(s, 'name', glue('s_{x}')),
+               mxAlgebraFromString(
+                 glue('t(s_{x}) %*% s_{x}'),
+                 name = glue('S_{x}')),
                mxAlgebraFromString(
                  glue('solve(I - A_{x}) %&% S_{x}'),
                  name = glue('V_{x}'))

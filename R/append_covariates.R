@@ -1,6 +1,10 @@
+#' @export
 append_covariates <- function(model_func,
                               data, zyg, ...,
                               covs1 = character(0), covs2 = character(0)) {
+  # Based on Schwabe et al. (2016): https://link.springer.com/article/10.1007/s10519-015-9771-1
+  # covs1 - covariates that can mismatch within the pair (expected variables 'X1', 'X2' in the table)
+  # covs2 - covariates that matches within the pair (covs1 = 'X' - expected variable 'X' in the table)
   if (!all(c('data', 'zyg') %in% formalArgs(model_func)))
     stop('This model_func is not compatible with this constructor, arguments data and zyg must be present')
   model <- model_func(data = data, zyg = zyg, ...)
@@ -12,7 +16,11 @@ append_covariates <- function(model_func,
     return(model)
   }
 
-  covNames <- c(paste0(covs1, rep(1:2, each = nc1)), covs2)
+  sep <- list(...)$sep
+  if (length(sep) == 0)
+    sep <- ''
+
+  covNames <- c(paste(covs1, rep(1:2, each = nc1), sep = sep), covs2)
   if (!all(covNames %in% names(data)))
     stop("Some covariates are not in the data table")
 
@@ -25,6 +33,13 @@ append_covariates <- function(model_func,
 
   nv <- mxEval(ncol(expMeans), model, compute = TRUE) / 2 # number of phenotypic
   nv <- as.vector(nv)
+
+  pheno_names <- unique(
+    gsub(
+      paste0(sep, '[1|2]$'),
+      '',
+      model$MZ$expectation$dims)
+  )
 
   phenoCovMZ <- model$expCovMZ
   phenoCovMZ$name <- 'phenoCovMZ'
@@ -42,6 +57,7 @@ append_covariates <- function(model_func,
   expDZ <- model$DZ$expectation
   expDZ$dims <- selvars
   expDZ$threshnames <- selvars
+
 
   model <-
     mxModel(model,
@@ -72,7 +88,7 @@ append_covariates <- function(model_func,
                      values = 0, free = TRUE,
                      name = 'beta2'),
             mxAlgebra(rbind(beta1, beta2),
-                      dimnames = list(c(covs1, covs2), NULL),
+                      dimnames = list(c(covs1, covs2), pheno_names),
                       name = 'beta'),
 
             # Covariate covariances within twin (CovW, CovWprime)
@@ -98,12 +114,12 @@ append_covariates <- function(model_func,
             mxAlgebra(CholCovB %*% t(CholCovB),
                       name = 'CovB'),
 
-            # Sector 1: covariation across phenotypic variables
+            # Sector 1: covariation across phenotypic variables explained by covariates
             mxAlgebra(rbind(cbind(t(beta) %&% (CovWprime + CovB), t(beta) %&% CovB),
                             cbind(t(beta) %&% CovB, t(beta) %&% (CovWprime + CovB))),
                       name = 'Sect1'),
 
-            # Sector 2: covariances between ph variables and covariates
+            # Sector 2: covariation between ph variables and covariates
             nc1 <- mxMatrix(type = 'Full',
                             ncol = nc1, nrow = 1,
                             values = 1:nc1, free = FALSE,
@@ -131,7 +147,7 @@ append_covariates <- function(model_func,
                       name = 'expCovDZ',
                       dimnames = list(selvars, selvars)),
 
-            # Substitute the data
+            # Replace the data
             mxModel(model$MZ,
                     expMZ,
                     mxData(observed = mzdata, type = 'raw')),

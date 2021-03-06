@@ -188,6 +188,7 @@ compute_starting_values <- function(model, data,
     })
 
     covmat <- Reduce(`+`, covs) / length(covs)
+    dimnames(covmat) <- list(vars, vars)
   }
 
   outp <- list(means = startmean,
