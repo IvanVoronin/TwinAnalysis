@@ -1,30 +1,24 @@
 # TwinAnalysis
 
-This is a package to simplify structural equation modeling - and particularly, twin analysis - in R. 
-The package is based on OpenMx and provides the following functionality:
-1. To define standardized parameters for any RAM MxModel.
-2. To define output tables (as MxAlgebra) within any MxModel. To extract output tables, to merge estimates and confidence
-intervals, to write the output tables into MS Excel file.
-3. To fit reference (Saturated and Independence) models, to compute fit statistics, to compare nested models.
-4. To compute twin statistics, to fit twin models (at the moment only cross-lag twin model is implemented).
-5. To introduce your favorite twin model.
+This is a package for structural equation modeling and twin analysis using OpenMx package for R. 
+The package provides following functionality:
+1. It computes standardized parameter estimates and their CIs in a RAM MxModel.
+2. It provides functionality to gather the parameter estimates and their CIs in the neat tables and to return the tables in console or in an MS Excel file.
+3. It fits the reference models (Saturated and Independence models) to compute fit statistics and compares nested models.
+4. It computes descriptive statistics for twin data and cross-twin cross-trait correlations.
+5. It provides the definition of a cross-lagged twin model.
 
-The package relies mostly on the basic functionality of OpenMx providing the shortcut between model definition 
-and publishing the results, especially when similar models used to describe different data. 
-It also uses `mlth.data.frame` which is another development of mine, the package for
-fancy multi-layered tables in R.
+The package uses my other package `mlth.data.frame` for the output functionality.
 
-Author: Ivan Voronin, Psychological Institute of Russian Academy of Education, Moscow
+Author: Ivan Voronin, Université Laval, QC, Canada
 
 e-mail: ivan.a.voronin@gmail.com
 
 # To install:
 
 ```
-# install.packages('devtools')
+# install.packages('remotes')
 
-library(devtools)
-
-install_github('ivanvoronin/mlth.data.frame')
-install_github('ivanvoronin/TwinAnalysis')
+remotes::install_github('ivanvoronin/mlth.data.frame')
+remotes::install_github('ivanvoronin/TwinAnalysis')
 ```
