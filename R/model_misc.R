@@ -405,3 +405,30 @@ process_data <- function(data,
     return(do.call('mxData', data))
   }
 }
+
+#' @title Assign the labels to free parameters in MxModel
+#'
+#' @description
+#'
+#' @param M \code{MxModel} object
+#'
+#' @return \code{MxModel} object.
+#'
+#' @note
+#' The labels are assigned in the form "matrix_row_col"
+#' or "model_matrix_row_col"
+#'
+#' @export
+assign_auto_labels <- function(M) {
+  P <- omxLocateParameters(M)
+  one_model <- length(unique(P$model) == 1)
+  for (p in split(P, 1:nrow(P))) {
+    M[[p$model]][[p$matrix]]$labels[p$row, p$col] <-
+      ifelse(
+        one_model,
+        paste(p$matrix, p$row, p$col, sep = '_'),
+        paste(p$model, p$matrix, p$row, p$col, sep = '_')
+      )
+  }
+  return(M)
+}

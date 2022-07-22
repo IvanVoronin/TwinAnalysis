@@ -28,6 +28,3 @@ is stored in the \code{options} slot of an \code{MxModel}.
 These functions aim to facilitate the assembly of parameters and their CIs.
 \code{get_ci} is used by \code{\link{get_output_tables}}.
 }
-\examples{
-
-}

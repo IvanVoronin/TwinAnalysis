@@ -134,6 +134,7 @@ univariate_ace <- function(data,
               name = 'Variance_components')
   )
 
+  twmodel <- assign_auto_labels(twmodel)
   output_tables(twmodel) <- c('Variance_components', 'Raw_variance')
   return(twmodel)
 }
@@ -234,6 +235,7 @@ univariate_ade <- function(data,
               name = 'Variance_components')
   )
 
+  twmodel <- assign_auto_labels(twmodel)
   output_tables(twmodel) <- c('Variance_components', 'Raw_variance')
   return(twmodel)
 }
@@ -400,6 +402,7 @@ multivariate_ace <- function(data,
               name = 'E_covariations')
   )
 
+  twmodel <- assign_auto_labels(twmodel)
   output_tables(twmodel) <- c('Variance_components', 'Covariation_components', 'All_correlations')
   return(twmodel)
 }
@@ -558,6 +561,7 @@ multivariate_ade <- function(data,
               name = 'E_covariations')
   )
 
+  twmodel <- assign_auto_labels(twmodel)
   output_tables(twmodel) <- c('Variance_components', 'Covariation_components', 'All_correlations')
   return(twmodel)
 }
@@ -806,6 +810,7 @@ cross_lag_ace <- function(data,
       name = 'Phenotypic_paths')
   )
 
+  twmodel <- assign_auto_labels(twmodel)
   output_tables(twmodel) <- c('Variance_components',
                               'Raw_variance',
                               'Raw_paths',
@@ -1004,6 +1009,7 @@ cross_lag_ade <- function(data,
       name = 'Phenotypic_paths')
   )
 
+  twmodel <- assign_auto_labels(twmodel)
   output_tables(twmodel) <- c('Variance_components',
                               'Raw_variance',
                               'Raw_paths',

@@ -13,9 +13,6 @@ twin_ref_models(model, run = FALSE, ...)
 
 \item{...}{the parameters passed to \code{ref_models}}
 }
-\value{
-
-}
 \description{
 Define and fit saturated and indepencence models that follow the assumptions of twin model.
 The twin model has to be fit as the function takes its estimates

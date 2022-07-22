@@ -22,7 +22,11 @@
 #' @return
 #'
 #' @export
-twin_ref_models <- function(model, run = FALSE, ...) {
+twin_ref_models <- function(
+  model,
+  run = FALSE,
+  ...
+) {
   selvars <- model$MZ$expectation$dims
   nv <- length(selvars) / 2
 
@@ -36,68 +40,141 @@ twin_ref_models <- function(model, run = FALSE, ...) {
   labs <- matrix(NA, nrow = nv, ncol = nv)
   labs[lower.tri(labs, diag = TRUE)] <- paste0('V', 1: (nv * (nv + 1) / 2))
   labs[upper.tri(labs)] <- t(labs)[upper.tri(labs)]
-  labs <- rbind(cbind(labs, matrix(NA, ncol = nv, nrow = nv)),
-                cbind(matrix(NA, ncol = nv, nrow = nv), labs))
+  labs <- rbind(
+    cbind(labs, matrix(NA, ncol = nv, nrow = nv)),
+    cbind(matrix(NA, ncol = nv, nrow = nv), labs)
+  )
 
-  sat_model <- mxModel(name = 'Saturated',
-                       mxMatrix(type = 'Symm', ncol = 2 * nv, nrow = 2 * nv,
-                                free = TRUE, values = t(startmz), labels = labs,
-                                name = 'expCovMZ'),
-                       mxMatrix(type = 'Symm', ncol = 2 * nv, nrow = 2 * nv,
-                                free = TRUE, values = t(startdz), labels = labs,
-                                name = 'expCovDZ'),
-                       mxMatrix(type = 'Full', nrow = 1, ncol = nv,
-                                free = TRUE, values = startmean, name = 'mean'),
-                       mxAlgebra(cbind(mean, mean),
-                                 name = 'expMeans'),
-                       mxModel(name = 'MZ',
-                               model$MZ$data,
-                               mxExpectationNormal(covariance = 'Saturated.expCovMZ',
-                                                   means = 'Saturated.expMeans',
-                                                   dimnames = selvars),
-                               mxFitFunctionML()),
-                       mxModel(name = 'DZ',
-                               model$DZ$data,
-                               mxExpectationNormal(covariance = 'Saturated.expCovDZ',
-                                                   means = 'Saturated.expMeans',
-                                                   dimnames = selvars),
-                               mxFitFunctionML()),
-                       mxFitFunctionMultigroup(c('MZ','DZ')))
+  sat_model <- mxModel(
+    name = 'Saturated',
+    mxMatrix(
+      type = 'Symm',
+      ncol = 2 * nv,
+      nrow = 2 * nv,
+      free = TRUE,
+      values = t(startmz),
+      labels = labs,
+      name = 'expCovMZ'
+    ),
+    mxMatrix(
+      type = 'Symm',
+      ncol = 2 * nv,
+      nrow = 2 * nv,
+      free = TRUE,
+      values = t(startdz),
+      labels = labs,
+      name = 'expCovDZ'
+    ),
+    mxMatrix(
+      type = 'Full',
+      nrow = 1,
+      ncol = nv,
+      free = TRUE,
+      values = startmean,
+      name = 'mean'
+    ),
+    mxAlgebra(
+      cbind(mean, mean),
+      name = 'expMeans'
+    ),
+    mxModel(
+      name = 'MZ',
+      model$MZ$data,
+      mxExpectationNormal(
+        covariance = 'Saturated.expCovMZ',
+        means = 'Saturated.expMeans',
+        dimnames = selvars
+      ),
+      mxFitFunctionML()
+    ),
+    mxModel(
+      name = 'DZ',
+      model$DZ$data,
+      mxExpectationNormal(
+        covariance = 'Saturated.expCovDZ',
+        means = 'Saturated.expMeans',
+        dimnames = selvars
+      ),
+      mxFitFunctionML()
+    ),
+    mxFitFunctionMultigroup(
+      c('MZ','DZ')
+    )
+  )
 
-  ind_model <- mxModel(name = 'Independence',
-                       mxMatrix(type = 'Diag', ncol = nv, nrow = nv,
-                                free = TRUE, values = diag2vec(startmz)[1:nv],
-                                name = 'Chol'),
-                       mxMatrix(type = 'Zero', ncol = nv, nrow = nv,
-                                name = 'Z'),
-                       mxAlgebra(Chol %*% t(Chol), name = 'V'),
-                       mxAlgebra(rbind(cbind(V, Z),
-                                       cbind(Z, V)),
-                                 name = 'expCov'),
-                       mxMatrix(type = 'Full', nrow = 1, ncol = nv,
-                                values = startmean,
-                                free = TRUE, name = 'mean'),
-                       mxAlgebra(cbind(mean, mean),
-                                 name = 'expMeans'),
-                       mxModel(name = 'MZ',
-                               model$MZ$data,
-                               mxExpectationNormal(covariance = 'Independence.expCov',
-                                                   means = 'Independence.expMeans',
-                                                   dimnames = selvars),
-                               mxFitFunctionML()),
-                       mxModel(name = 'DZ',
-                               model$DZ$data,
-                               mxExpectationNormal(covariance = 'Independence.expCov',
-                                                   means = 'Independence.expMeans',
-                                                   dimnames = selvars),
-                               mxFitFunctionML()),
-                       mxFitFunctionMultigroup(c('MZ','DZ')))
+  ind_model <- mxModel(
+    name = 'Independence',
+    mxMatrix(
+      type = 'Diag',
+      ncol = nv,
+      nrow = nv,
+      free = TRUE,
+      values = diag2vec(startmz)[1:nv],
+      name = 'Chol'
+    ),
+    mxMatrix(
+      type = 'Zero',
+      ncol = nv,
+      nrow = nv,
+      name = 'Z'
+    ),
+    mxAlgebra(
+      Chol %*% t(Chol),
+      name = 'V'
+    ),
+    mxAlgebra(
+      rbind(
+        cbind(V, Z),
+        cbind(Z, V)
+      ),
+      name = 'expCov'
+    ),
+    mxMatrix(
+      type = 'Full',
+      nrow = 1,
+      ncol = nv,
+      values = startmean,
+      free = TRUE,
+      name = 'mean'
+    ),
+    mxAlgebra(
+      cbind(mean, mean),
+      name = 'expMeans'
+    ),
+    mxModel(
+      name = 'MZ',
+      model$MZ$data,
+      mxExpectationNormal(
+        covariance = 'Independence.expCov',
+        means = 'Independence.expMeans',
+        dimnames = selvars
+      ),
+      mxFitFunctionML()
+    ),
+    mxModel(
+      name = 'DZ',
+      model$DZ$data,
+      mxExpectationNormal(
+        covariance = 'Independence.expCov',
+        means = 'Independence.expMeans',
+        dimnames = selvars
+      ),
+      mxFitFunctionML()
+    ),
+    mxFitFunctionMultigroup(
+      c('MZ','DZ')
+    )
+  )
 
-  model <- ref_models(model,
-                      ref_models = list(
-                        Saturated = sat_model,
-                        Independence = ind_model
-                      ), run = run, ...)
+  model <- ref_models(
+    model,
+    ref_models = list(
+      Saturated = sat_model,
+      Independence = ind_model
+    ),
+    run = run,
+    ...
+  )
   return(model)
 }
 
@@ -130,8 +207,31 @@ process_twin_data <- function(data,
                               zyg = character(0)) {
 
   if (data_type == 'raw') {
-      data <- split(as.data.frame(data[, selvars]),
-                    data[, zyg])
+    # Checking that zygosity is indeed a factor
+    zygosity <- data[, zyg]
+    if (!is.factor(zygosity)) {
+      if (all(zygosity %in% 1:2)) {
+        zygosity <- factor(
+          zygosity,
+          levels = 1:2,
+          labels = c('MZ', 'DZ')
+        )
+      } else if (all(zygosity %in% c('MZ', 'DZ'))) {
+        zygosity <- factor(
+          zygosity,
+          levels = c('MZ', 'DZ')
+        )
+      } else {
+        stop('zygosity must be labeled as either "MZ" and "DZ" or 1 and 2')
+      }
+    } else if (!all(levels(zygosity) %in% c('MZ', 'DZ'))) {
+      stop('zygosity levels must be "MZ" and "DZ"')
+    }
+
+    data <- split(
+      as.data.frame(data[, selvars]),
+      zygosity
+    )
 
     lapply(data, function(x) {
       mxData(observed = x,
@@ -227,3 +327,4 @@ adjust_twin_data <- function(DV, IV, interaction = TRUE) {
     outp[, i] <- LM$residuals[rownames(outp)]
   }
 }
+

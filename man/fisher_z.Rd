@@ -24,6 +24,3 @@ or length of 2}
 The Fisher r-to-z transformation implied to compare the correlations
 in two groups
 }
-\examples{
-
-}

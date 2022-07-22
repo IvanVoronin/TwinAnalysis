@@ -27,6 +27,3 @@ one-way and two-way paths and \code{Means} include the means. The user can
 identify the confidence intervals for the whole table or for its part,
 see examples for \code{\link{def_ci}}.
 }
-\examples{
-
-}

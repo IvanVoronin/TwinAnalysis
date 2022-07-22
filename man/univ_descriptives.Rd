@@ -19,9 +19,3 @@ c('X1', 'Y1', 'Z1', 'X2', 'Y2', 'Z2')}
 Compute number of valid observations, means, SDs and cross-twin correlations
 for MZ and DZ twins. Can be used for any data on groups.
 }
-\details{
-
-}
-\examples{
-
-}

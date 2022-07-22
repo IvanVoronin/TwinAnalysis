@@ -25,6 +25,3 @@ has exactly two levels}
 Compute the phenotypic correlations across twins and across traits,
 for MZ and DZ twins. Can be used for any data on groups.
 }
-\examples{
-
-}

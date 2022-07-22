@@ -2,6 +2,7 @@
 
 export("output_tables<-")
 export(append_covariates)
+export(assign_auto_labels)
 export(compute_starting_values)
 export(cross_lag)
 export(cross_lag_ace)
