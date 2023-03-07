@@ -416,7 +416,8 @@ process_data <- function(data,
 #'
 #' @note
 #' The labels are assigned in the form "matrix_row_col"
-#' or "model_matrix_row_col"
+#' or "model_matrix_row_col". In symmetric matrices, the labels
+#' are the same upper and lower triangle.
 #'
 #' @export
 assign_auto_labels <- function(M) {
@@ -429,6 +430,13 @@ assign_auto_labels <- function(M) {
         paste(p$matrix, p$row, p$col, sep = '_'),
         paste(p$model, p$matrix, p$row, p$col, sep = '_')
       )
+  }
+  for (m in unique(P$matrix)) {
+    if (class(M[[m]]) == 'SymmMatrix') {
+      m_labs <- M[[m]]$labels
+      M[[m]]$labels[upper.tri(m_labs)] <-
+        t(m_labs)[upper.tri(m_labs)]
+    }
   }
   return(M)
 }
