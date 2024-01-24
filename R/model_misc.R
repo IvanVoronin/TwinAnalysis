@@ -388,16 +388,21 @@ def_stand_params <- function(model) {
 }
 
 #' @export
-process_data <- function(data,
-                         vars,
-                         data_type = 'raw') {
+process_data <- function(
+    data,
+    vars,
+    data_type = 'raw'
+) {
   if (data_type == 'raw') {
     return(
-      mxData(observed = data,
-             type = 'raw')
+      mxData(
+        observed = data,
+        type = 'raw'
+      )
     )
   } else {
     data$type <- data_type
+    data$observed <- data$observed[vars, vars]
 
     if (length(data$means == 0) || any(is.na(data$means))) {
       data$means <- rep(0, length(vars))
@@ -439,4 +444,247 @@ assign_auto_labels <- function(M) {
     }
   }
   return(M)
+}
+
+#' @title Extract the bootstrapped confidence interval
+#'
+#' @description
+#' If the bootstrap has been applied to the model, this function helps to
+#' extract the bootstrapped confidence interval and present it in a table
+#' combined with the parameters' estimates. Since the extraction of CI for the
+#' computed parameters can take long time, it also allows saving the tables
+#' to cache. If the cache file already exists, it will load the tables from it
+#'
+#' @param model_boot bootstrapped \code{MxModel}
+#' @param table_name a character vector of the names of \code{MxAlgebra} or
+#'                   \code{MxMatrix} in the model for which the CI is estimated.
+#'                   If this is \code{character(0)}, it will try to extract the
+#'                   names of the output tables from the model using
+#'                   \code{output_tables()} (a character vector stored in
+#'                   \code{@output$output_tables})
+#' @param interval the interval's quantile (default is 95% CI)
+#' @param cache_file a string indicating the file where the parameter tables
+#'                   will be stored (.rds)
+#' @param force force the computation regardless of whether the cache file
+#'              exists or not
+#'
+#' @return a table in the form of \code{mlth.data.frame}
+#'
+#'
+#' @export
+get_boot_ci <- function(
+    model_boot,
+    table_name = character(0),
+    interval = c(0.025, 0.975),
+    cache_file = character(0),
+    force = FALSE
+) {
+  require(mlth.data.frame)
+
+  if (length(table_name) == 0)
+    table_name <- output_tables(model_boot)
+
+  if (length(table_name) == 0)
+    stop('Please provide table_name')
+
+  if (length(cache_file) != 0 && file.exists(cache_file) && !force) {
+    ## If cache file exists, read from cache
+    outp <- readRDS(cache_file)
+    message(
+      'Bootstrapped CI loaded from ',
+      cache_file
+    )
+    outp <- outp[table_name]
+  } else {
+    ## Check that the folder for the cache file exists before running
+    ## the computation
+    if (length(cache_file) != 0) {
+      cache_folder <- gsub('\\/[^\\/]*$', '', cache_file)
+      if (!dir.exists(cache_folder))
+        stop(
+          'The cache folder ',
+          cache_folder,
+          ' does not exist'
+        )
+    }
+
+    ## Extract the CIs from the bootstrapped model
+    outp <- list()
+
+    for (i in table_name) {
+      message('Processing ', i)
+      est <- mxEvalByName(
+        i, model_boot
+      )
+      ci <- mxBootstrapEvalByName(
+        i, model_boot, bq = interval
+      )
+
+      tab <- vector('list', ncol(est))
+      if (length(colnames(est)) !=0 ) {
+        names(tab) <- colnames(est)
+      } else {
+        names(tab) <- paste0('[,', 1:length(tab), ']')
+      }
+      for (j in 1:ncol(est)) {
+        tab[[j]] <- c(
+          list(est = est[, j, drop = FALSE]),
+          apply(
+            ci[(nrow(est) * (j - 1) + 1):(nrow(est) * j), -1, drop = FALSE],
+            2, identity,
+            simplify = FALSE
+          )
+        )
+      }
+      outp[[i]] <- as.mlth.data.frame(tab)
+      if (length(rownames(est) != 0)) {
+        row.names(outp[[i]]) <- rownames(est)
+      } else {
+        row.names(outp[[i]]) <- paste0('[', nrow(est), ',]')
+      }
+    }
+
+    ## Write the bootstrapped intervals to cache
+    if (length(cache_file) != 0) {
+      saveRDS(
+        outp,
+        file = cache_file
+      )
+      message(
+        'The tables with bootstrapped CIs are saved in ',
+        cache_file
+      )
+    }
+  }
+
+  return(outp)
+}
+
+#' @title Run bootstrap on an MxModel
+#'
+#' @description
+#' It allows running boostrap and saving it to a cache file. If the cache file
+#' already exists, it will load the bootstrapped model from cache. It can run
+#' in chunks giving an update when each chunk is finished. It measures the time
+#' needed to process one chunk and gives an estimation of the total execution
+#' time.
+#'
+#' @param model MxModel
+#' @param cache_file a character vector indicating the cache file (.rds)
+#' @param N number of bootstrap samples
+#' @param force force bootstrap regardless of whether the cache file exists
+#' @param by_chunk run the bootstrap in chunks
+#' @param chunk_size the size of one chunk
+#'
+#' @return MxModel
+#'
+#' @note
+#' The bootstrap is only supported for the models with the real (raw) data
+#'
+#' @export
+#'
+#'
+
+run_bootstrap <- function(
+    model,
+    cache_file = character(0),
+    N = 500,
+    force = FALSE,
+    by_chunk = TRUE,
+    chunk_size = 100
+) {
+  ## If the cached bootstrapped file exists, load from cache
+  if (length(cache_file) != 0 && file.exists(cache_file) && !force) {
+    model_boot <- readRDS(cache_file)
+    message(
+      'Bootstrapped model loaded with ',
+      model_boot@compute$replications,
+      ' replications loaded from ',
+      cache_file
+    )
+  } else {
+    ## Check that the folder for the cache file exists berofe running
+    ## the bootstrap
+    if (length(cache_file) != 0) {
+      cache_folder <- gsub('\\/[^\\/]*$', '', cache_file)
+      if (!dir.exists(cache_folder))
+        stop(
+          'The cache folder ',
+          cache_folder,
+          ' does not exist'
+        )
+    }
+
+    model_boot <- model
+
+    if (by_chunk) {
+      ## Boostrap run in chunks
+      ## The first chunk is timed to estimate the total execution time
+      message(
+        'Running bootstrap with ',
+        N,
+        ' replications in the chunks of ',
+        chunk_size
+      )
+
+      ## Start the bootstrap
+      for (i in 1:ceiling(N / chunk_size)) {
+        if (i == 1)
+          then <- proc.time()[3]
+
+        model_boot <- mxBootstrap(
+          model_boot,
+          replications = min(i * chunk_size, N)
+        )
+
+        message(
+          model_boot@compute$replications,
+          ' replications completed'
+        )
+        if (i == 1 & N > chunk_size) {
+          now <- proc.time()[3]
+          t <- floor(now - then)
+          t_full <- floor(t * N / chunk_size)
+          message(
+            'The first chunk was completed in ',
+            paste0(t %/% 3600, 'h'),
+            paste0(t %/% 60, 'm'),
+            paste0(t %% 60, 's'),
+            '\n',
+            'The estimated total execution time is ',
+            paste0(t_full %/% 3600, 'h'),
+            paste0(t_full %/% 60, 'm'),
+            paste0(t_full %% 60, 's')
+          )
+        }
+      }
+    } else {
+      ## Bootstrap in a single run
+      message(
+        'Running bootstrap with ',
+        N,
+        ' replications'
+      )
+
+      ## Start the boostrap
+      model_boot <- mxBootstrap(
+        model_boot,
+        replications = N
+      )
+    }
+
+    ## Write the bootstrapped model to cache
+    if (length(cache_file) != 0) {
+      saveRDS(
+        model_boot,
+        file = cache_file
+      )
+      message(
+        'The bootstrapped model is saved in ',
+        cache_file
+      )
+    }
+  }
+
+  return(model_boot)
 }

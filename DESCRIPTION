@@ -1,18 +1,18 @@
 Package: TwinAnalysis
 Type: Package
 Title: This is a package to simplify structural equation modeling - and particularly, twin analysis - in R.
-Version: 0.2.0
+Version: 0.3.0
 Author: Ivan Voronin
 Maintainer: Ivan Voronin <ivan.a.voronin@gmail.com>
 Description: The package is based on the functionality of OpenMx package and aims to provide a shortcut between
   model definition and publishing the results.
-License: ???
+License: CC BY-NC-SA
 Encoding: UTF-8
 LazyData: true
 Imports:
   mlth.data.frame,
   OpenMx
-RoxygenNote: 7.2.1
+RoxygenNote: 7.2.3
 Suggests: 
     knitr,
     rmarkdown
