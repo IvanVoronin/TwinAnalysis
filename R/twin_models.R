@@ -1449,7 +1449,7 @@ cross_lag_ade <- function(
     mxAlgebra(
       abs((F3 - F2 %*% t(F2) %*% F3) * V_D + F2 %&% E_D)
       / (absS + omxNot(absS)),
-      name = 'Sperc_C'
+      name = 'Sperc_D'
     ),
     mxAlgebra(
       abs((F3 - F2 %*% t(F2) %*% F3) * V_E + F2 %&% E_E)
