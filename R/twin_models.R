@@ -1850,16 +1850,16 @@ cross_lag_ade_old <- function(data,
     # MZ submodel
     mxModel(name = 'MZ',
             datalist$MZ,
-            mxExpectationNormal(covariance = 'ACE.expCovMZ',
-                                means = 'ACE.expMeans',
+            mxExpectationNormal(covariance = 'ADE.expCovMZ',
+                                means = 'ADE.expMeans',
                                 dimnames = selvars),
             mxFitFunctionML()),
 
     # DZ submodel
     mxModel(name = 'DZ',
             datalist$DZ,
-            mxExpectationNormal(covariance = 'ACE.expCovDZ',
-                                means = 'ACE.expMeans',
+            mxExpectationNormal(covariance = 'ADE.expCovDZ',
+                                means = 'ADE.expMeans',
                                 dimnames = selvars),
             mxFitFunctionML()),
 
