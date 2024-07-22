@@ -643,7 +643,7 @@ cross_lag_ace <- function(
 
   VbyT <- sapply(vars, \(y) sapply(definition, \(x) y %in% x))
   F3vals <- t(VbyT) %*% VbyT
-  F4vals <- t(VbyT[-1, ]) %*% VbyT[-nrow(VbyT), ]
+  F4vals <- t(VbyT[-1, , drop = FALSE]) %*% VbyT[-nrow(VbyT), , drop = FALSE]
 
   # Starting values
   startval <- compute_starting_values(
@@ -1085,7 +1085,7 @@ cross_lag_ade <- function(
 
   VbyT <- sapply(vars, \(y) sapply(definition, \(x) y %in% x))
   F3vals <- t(VbyT) %*% VbyT
-  F4vals <- t(VbyT[-1, ]) %*% VbyT[-nrow(VbyT), ]
+  F4vals <- t(VbyT[-1, , drop = FALSE]) %*% VbyT[-nrow(VbyT), , drop = FALSE]
 
   # Starting values
   startval <- compute_starting_values(

@@ -239,7 +239,7 @@ process_twin_data <- function(data,
     })
   } else {
     data <- lapply(data, function(x) {
-      x$observed <- x$observed[selvars, selvars]
+      x$observed <- as.matrix(x$observed[selvars, selvars])
       x
     })
     data <- lapply(data, function(x) c(x, list(type = data_type)))
@@ -284,10 +284,11 @@ compute_starting_values <- function(model, data,
     covs <- lapply(data, `[[`, 'observed')
     covs <- lapply(covs, function(x) {
       (x[paste(vars, 1, sep = sep), paste(vars, 1, sep = sep), drop = FALSE] +
-         x[paste(vars, 2, sep = sep), paste0(vars, 2, sep = sep), drop = FALSE]) / 2
+         x[paste(vars, 2, sep = sep), paste(vars, 2, sep = sep), drop = FALSE]) / 2
     })
 
     covmat <- Reduce(`+`, covs) / length(covs)
+    covmat <- as.matrix(covmat)
     dimnames(covmat) <- list(vars, vars)
   }
 

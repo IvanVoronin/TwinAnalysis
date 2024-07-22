@@ -494,6 +494,17 @@ get_boot_ci <- function(
       'Bootstrapped CI loaded from ',
       cache_file
     )
+
+    M1 <- attr(outp, 'original_model')()
+    M1@output <- list()
+    M2 <- model_boot
+    M2@output <- list()
+
+    if (!all.equal(M1, M2))
+      stop(
+        'The provided model is different from the original model\n',
+        'Restart with force = TRUE'
+      )
     outp <- outp[table_name]
   } else {
     ## Check that the folder for the cache file exists before running
@@ -544,6 +555,8 @@ get_boot_ci <- function(
       }
     }
 
+    attr(outp, 'original_model') <- function() model_boot
+
     ## Write the bootstrapped intervals to cache
     if (length(cache_file) != 0) {
       saveRDS(
@@ -586,12 +599,14 @@ get_boot_ci <- function(
 #'
 
 run_bootstrap <- function(
-    model,
-    cache_file = character(0),
-    N = 500,
-    force = FALSE,
-    by_chunk = TRUE,
-    chunk_size = 100
+    ## FIXME: when loading from the cache, check that this is the same model
+    ## Same for the bootstrapped CIs
+  model,
+  cache_file = character(0),
+  N = 500,
+  force = FALSE,
+  by_chunk = TRUE,
+  chunk_size = 100
 ) {
   ## If the cached bootstrapped file exists, load from cache
   if (length(cache_file) != 0 && file.exists(cache_file) && !force) {
@@ -602,6 +617,17 @@ run_bootstrap <- function(
       ' replications loaded from ',
       cache_file
     )
+
+    M1 <- attr(model_boot, 'original_model')()
+    M1@output <- list()
+    M2 <- model
+    M2@output <- list()
+
+    if (!all.equal(M1, M2))
+      stop(
+        'The provided model is different from the original model\n',
+        'Restart with force = TRUE'
+      )
   } else {
     ## Check that the folder for the cache file exists berofe running
     ## the bootstrap
@@ -672,6 +698,8 @@ run_bootstrap <- function(
         replications = N
       )
     }
+
+    attr(model_boot, 'original_model') <- function() model
 
     ## Write the bootstrapped model to cache
     if (length(cache_file) != 0) {
