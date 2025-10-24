@@ -46,7 +46,7 @@ def_output_tables <- function(model, output_tables = character(0)) {
 
 #' @rdname output_tables
 #' @export
-get_output_tables <- function(model, tables = character(0), CIs = TRUE) {
+get_output_tables <- function(model, tables = character(0), CIs = TRUE, stars = TRUE, ...) {
   if (length(tables) == 0)
     tables <- output_tables(model)
 
@@ -61,10 +61,15 @@ get_output_tables <- function(model, tables = character(0), CIs = TRUE) {
     if (length(cis[[i]]) == 0) {
       outp[[i]] <- pars[[i]]
     } else {
-      outp[[i]] <- as.mlth.data.frame(Map(list,
-                                          est = as.data.frame(pars[[i]]),
-                                          lCI = as.data.frame(cis[[i]]$lbound),
-                                          uCI = as.data.frame(cis[[i]]$ubound)))
+      l <- Map(
+        list,
+        est = as.data.frame(pars[[i]]),
+        lCI = as.data.frame(cis[[i]]$lbound),
+        uCI = as.data.frame(cis[[i]]$ubound)
+      )
+      if (stars)
+        l <- lapply(l, stars, ...)
+      outp[[i]] <- as.mlth.data.frame(l)
       names(outp[[i]]) <- colnames(pars[[i]])
       row.names(outp[[i]]) <- rownames(pars[[i]])
     }
@@ -462,11 +467,14 @@ assign_auto_labels <- function(M) {
 #'                   names of the output tables from the model using
 #'                   \code{output_tables()} (a character vector stored in
 #'                   \code{@output$output_tables})
-#' @param interval the interval's quantile (default is 95% CI)
+#' @param interval the interval's quantile (default is c(0.025, 0.975 for a 95\%
+#' CI)
 #' @param cache_file a string indicating the file where the parameter tables
 #'                   will be stored (.rds)
 #' @param force force the computation regardless of whether the cache file
 #'              exists or not
+#' @param stars whether to include the statistical significance stars or not
+#' @param ... parameters passed to stars
 #'
 #' @return a table in the form of \code{mlth.data.frame}
 #'
@@ -477,7 +485,9 @@ get_boot_ci <- function(
     table_name = character(0),
     interval = c(0.025, 0.975),
     cache_file = character(0),
-    force = FALSE
+    force = FALSE,
+    stars = TRUE,
+    ...
 ) {
   require(mlth.data.frame)
 
@@ -546,7 +556,12 @@ get_boot_ci <- function(
             simplify = FALSE
           )
         )
+        names(tab[[j]]) <- c('est', paste0('Q', interval))
       }
+
+      if (stars)
+        tab <- lapply(tab, stars, ...)
+
       outp[[i]] <- as.mlth.data.frame(tab)
       if (length(rownames(est) != 0)) {
         row.names(outp[[i]]) <- rownames(est)
@@ -687,12 +702,12 @@ run_bootstrap <- function(
           message(
             'The first chunk was completed in ',
             paste0(t %/% 3600, 'h'),
-            paste0(t %/% 60, 'm'),
+            paste0((t %/% 60) %% 60, 'm'),
             paste0(t %% 60, 's'),
             '\n',
             'The estimated total execution time is ',
             paste0(t_full %/% 3600, 'h'),
-            paste0(t_full %/% 60, 'm'),
+            paste0((t_full %/% 60) %% 60, 'm'),
             paste0(t_full %% 60, 's')
           )
         }
@@ -729,3 +744,123 @@ run_bootstrap <- function(
 
   return(model_boot)
 }
+
+
+#' @title Add the statistical significance stars based on the confidence
+#' intervals.
+#'
+#' @description
+#' This function takes the confidence intervals returned by \code{get_boot_ci()}
+#' function and adds the statistical significance stars based on these
+#' intervals.
+#'
+#' @param d a data.frame where the first column is the estimate and all other
+#' columns are the confidence intervals (see Note).
+#' @param digits how many digits of the estimate have to be shown when paste=TRUE.
+#' @param tol 10^(-tol) is the lowest value considered to be distinct from zero.
+#' default \code{tol = digits}.
+#' @param include whether to include the significance stars ('sig') or the intervals ('CIs')
+#' in the output.
+#' @param paste whether to paste the estimate and the stars.
+#'
+#' @return character vector
+#'
+#' @note
+#' It is important that the columns of d are correctly ordered. The estimate
+#' goes first, then follow the quantiles that correspond to the confidence
+#' intervals \textbf{according to their proper order}. Suppose I computed 95%,
+#' 99% and 99.9% CIs. The order of quantiles should be the following:
+#' 0.0005, 0.005, 0.025, 0.975, 0.995, 0.9995. When the quantiles are out of order,
+#' the function throws an error.
+#'
+#' Next, some parameters are non-negative/non-positive by definition. The
+#' borders of their CIs are never be exactly zero. So, the parameter tol
+#' defines how small the value can be to still be considered non-zero. Thus,
+#' when tol = 3, the values greater than -0.001 and lower than 0.001 will be
+#' considered zero. It makes sense to have tol = digits.
+#'
+#' @export
+#'
+#'
+
+stars <- function(d, digits = 3, tol = digits, include = c('sig', 'CIs'), paste = FALSE) {
+  ## digits = how many digits will be printed
+  ## tol = the cut-off digit to determine statistical significance
+  ## (10^(-tol))
+  ## return: all = everything, or: c('sig', 'CIs'). The estimate is always included.
+  ## paste: paste stars and the estimate
+
+  D <- as.data.frame(d)
+
+  ## Verify that the values of the intervals are in the right order
+  est <- D[, 1]
+  cis <- D[, -1]
+
+  outp <- data.frame(est = est, row.names = row.names(d))
+
+  if ('sig' %in% include) {
+    ## If the significance is not requested, this step will be skipped
+    if (!all(cis[, -1] >= cis[, -ncol(cis)]))
+      stop('The interval borders are not in the right order. Check the order of
+          the quantiles.')
+
+    sig <- rep('', length(est))
+
+    for (i in seq(1, ncol(cis) / 2, 1)) {
+      sig <- paste0(
+        sig,
+        ifelse(
+          cis[[i]] > 10^(-tol) | cis[[ncol(cis) - i + 1]] < -10^(-tol),
+          '*', ''
+        )
+      )
+    }
+
+    if (paste) {
+      outp$est <- sprintf(
+        paste0('%0.', digits, 'f%s'),
+        est, sig
+      )
+    } else
+      outp$sig <- sig
+  }
+
+  if ('CIs' %in% include)
+    outp <- cbind(outp, cis)
+
+  class(outp) <- class(d)
+  return(outp)
+}
+
+
+# stars <- function(d, digits = 3, tol = digits) {
+#   ## digits = how many digits will be printed
+#   ## tol = the cut-off digit to determine statistical significance
+#   ## (10^(-tol))
+
+#   d <- as.data.frame(d)
+
+#   ## Verify that the values of the intervals are in the right order
+#   cis <- as.data.frame(d[, -1])
+#   if (!all(cis[, -1] >= cis[, -ncol(cis)]))
+#     stop('The interval borders are not in the right order. Check the order of
+#          the quantiles.')
+
+#   outp <- sprintf(
+#     paste0('%0.', digits, 'f'),
+#     d[, 1]
+#   )
+
+#   for (i in seq(2, (ncol(d) - 1) / 2 + 1, 1)) {
+#     outp <- paste0(
+#       outp,
+#       ifelse(
+#         d[[i]] > 10^(-tol) | d[[ncol(d) - i + 2]] < -10^(-tol),
+#         '*', ''
+#       )
+#     )
+#   }
+
+#   names(outp) <- row.names(d)
+#   return(outp)
+# }

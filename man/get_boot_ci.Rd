@@ -9,7 +9,9 @@ get_boot_ci(
   table_name = character(0),
   interval = c(0.025, 0.975),
   cache_file = character(0),
-  force = FALSE
+  force = FALSE,
+  stars = TRUE,
+  ...
 )
 }
 \arguments{
@@ -22,13 +24,18 @@ names of the output tables from the model using
 \code{output_tables()} (a character vector stored in
 \code{@output$output_tables})}
 
-\item{interval}{the interval's quantile (default is 95% CI)}
+\item{interval}{the interval's quantile (default is c(0.025, 0.975 for a 95\%
+CI)}
 
 \item{cache_file}{a string indicating the file where the parameter tables
 will be stored (.rds)}
 
 \item{force}{force the computation regardless of whether the cache file
 exists or not}
+
+\item{stars}{whether to include the statistical significance stars or not}
+
+\item{...}{parameters passed to stars}
 }
 \value{
 a table in the form of \code{mlth.data.frame}

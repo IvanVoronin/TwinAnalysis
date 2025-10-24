@@ -37,5 +37,15 @@ needed to process one chunk and gives an estimation of the total execution
 time.
 }
 \note{
-The bootstrap is only supported for the models with the real (raw) data
+The bootstrap is only supported for the models with the real (raw) data.
+
+There may be different reasons why an the cached model might not match the
+provided model. From my experience: 1) The parameter estimates may be very
+unstable, meaning that each run results in very different estimates. There is
+no good reason for caching or even using such a model. 2) The whole data
+table provided to the model is stored in the model, including the variables
+that may not be actually used. Therefore, when the variables are added or
+changed, the model will not match, even if it does not use these
+variables. So it is recommended to feed to the model only those variables
+that are actually used.
 }
