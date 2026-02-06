@@ -800,7 +800,7 @@ stars <- function(d, digits = 3, tol = digits, include = c('sig', 'CIs'), paste 
 
   if ('sig' %in% include) {
     ## If the significance is not requested, this step will be skipped
-    if (!all(cis[, -1] >= cis[, -ncol(cis)]))
+    if (!all(cis[, -1] >= cis[, -ncol(cis)], na.rm = TRUE))
       stop('The interval borders are not in the right order. Check the order of
           the quantiles.')
 
